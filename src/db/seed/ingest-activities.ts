@@ -125,7 +125,7 @@ export function transformActivityRow(raw: RawRow, now = new Date()): TransformRe
     ),
     start_date,
     end_date,
-    location_name: pick(row, "location_name", "venue", "location") ?? null,
+    location_name: pick(row, "location_name", "locationname", "venue", "location") ?? null,
     address: pick(row, "address") ?? null,
     lat,
     lng,

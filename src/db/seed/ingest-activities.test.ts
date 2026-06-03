@@ -55,13 +55,22 @@ describe("transformActivityRow", () => {
     expect(r.ok && r.activity.borough).toBe("Brooklyn");
   });
 
-  it("accepts header aliases (objectid/name/link/latitude)", () => {
+  it("accepts header aliases (objectid/name/link/latitude/locationname)", () => {
     const r = transformActivityRow(
-      { objectid: "7", source: "parks", name: "Yoga", link: "https://u", latitude: "40.7", longitude: "-74.0" },
+      {
+        objectid: "7",
+        source: "parks",
+        name: "Yoga",
+        link: "https://u",
+        latitude: "40.7",
+        longitude: "-74.0",
+        locationname: "Rugby Library",
+      },
       NOW,
     );
     expect(r.ok && r.activity.id).toBe(7);
     expect(r.ok && r.activity.title).toBe("Yoga");
+    expect(r.ok && r.activity.location_name).toBe("Rugby Library");
   });
 });
 
