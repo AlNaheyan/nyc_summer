@@ -69,7 +69,7 @@ export function selectOptions(
     const existing = byPlace.get(key);
     if (!existing || startSortKey(a) < startSortKey(existing)) byPlace.set(key, a);
   }
-  const distinct = [...byPlace.values()];
+  const distinct = Array.from(byPlace.values());
 
   // 3. attach distance + order
   const withDistance: MatchedOption[] = distinct.map((a) => ({
