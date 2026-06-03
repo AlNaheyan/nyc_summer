@@ -1,0 +1,41 @@
+import { z } from "zod";
+
+/**
+ * Public env — safe to read in the browser. Only NEXT_PUBLIC_* keys.
+ * Validated at module load so a misconfigured deploy fails fast.
+ */
+const publicSchema = z.object({
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  NEXT_PUBLIC_APP_URL: z.string().url(),
+});
+
+export const publicEnv = publicSchema.parse({
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+});
+
+/**
+ * Server-only env. NEVER import this from a client component.
+ * Lazily validated so the public bundle never trips over missing secrets.
+ */
+const serverSchema = z.object({
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  MODERATION_API_KEY: z.string().min(1).optional(), // required for Phase 2
+});
+
+let cachedServerEnv: z.infer<typeof serverSchema> | null = null;
+
+export function serverEnv() {
+  if (typeof window !== "undefined") {
+    throw new Error("serverEnv() must never be called in the browser");
+  }
+  if (!cachedServerEnv) {
+    cachedServerEnv = serverSchema.parse({
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      MODERATION_API_KEY: process.env.MODERATION_API_KEY,
+    });
+  }
+  return cachedServerEnv;
+}
