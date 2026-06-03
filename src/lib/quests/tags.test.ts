@@ -43,4 +43,11 @@ describe("normalizeTags", () => {
   it("returns an empty array for no matches", () => {
     expect(normalizeTags(["", "   ", "nonsense"])).toEqual([]);
   });
+
+  it("maps source-dataset vocabulary (sports, arts-and-crafts, movies)", () => {
+    expect(normalizeTags(["basketball"])).toEqual(["sports"]);
+    expect(normalizeTags(["track"])).toEqual(["sports", "running"]);
+    expect(normalizeTags(["arts-and-crafts"])).toEqual(["art"]);
+    expect(normalizeTags(["movies", "books"])).toEqual(["movie", "reading"]);
+  });
 });

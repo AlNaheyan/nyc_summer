@@ -172,6 +172,33 @@ const RAW_TAG_MAP: Record<string, CanonicalTag[]> = {
   community: ["community"],
   "games": ["games"],
   "board games": ["games"],
+  // --- source dataset vocabulary (PSAL sports, BKPL/NYPL programs) ---
+  "arts-and-crafts": ["art"],
+  "board-games": ["games"],
+  "video-games": ["games"],
+  dancing: ["dance", "performance"],
+  writing: ["workshop"],
+  // sports (PSAL & rec leagues) → "sports"; running-ish also adds "running"
+  basketball: ["sports"],
+  volleyball: ["sports"],
+  tennis: ["sports"],
+  "table-tennis": ["sports"],
+  badminton: ["sports"],
+  football: ["sports"],
+  soccer: ["sports"],
+  baseball: ["sports"],
+  softball: ["sports"],
+  handball: ["sports"],
+  lacrosse: ["sports"],
+  wrestling: ["sports"],
+  "double-dutch": ["sports"],
+  "world-cup": ["sports"],
+  track: ["sports", "running"],
+  "cross-country": ["sports", "running"],
+  bowling: ["sports"],
+  golf: ["sports"],
+  cricket: ["sports"],
+  flag_football: ["sports"],
 };
 
 /** Lowercase, trim, collapse whitespace. */

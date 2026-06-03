@@ -53,6 +53,19 @@ function toIso(v: string | undefined): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/**
+ * Fallback outbound URL when a row has no link (e.g. PSAL sports entries).
+ * Keeps real activities instead of dropping them; links to the source org.
+ */
+const SOURCE_DEFAULT_URL: Record<string, string> = {
+  psal: "https://www.psal.org",
+  bkpl: "https://www.bklynlibrary.org",
+  nypl: "https://www.nypl.org",
+  dycd: "https://www.nyc.gov/site/dycd/index.page",
+  parks: "https://www.nycgovparks.org",
+};
+const GENERIC_URL = "https://www.nyc.gov/summer";
+
 function splitRawTags(v: string | undefined): string[] {
   if (!v) return [];
   return v
@@ -77,14 +90,16 @@ export function transformActivityRow(raw: RawRow, now = new Date()): TransformRe
   const id = toNumber(pick(row, "id", "objectid", "object_id"));
   const source = pick(row, "source");
   const title = pick(row, "title", "name");
-  const url = pick(row, "url", "link");
 
-  if (id == null || !source || !title || !url) {
-    return { ok: false, reason: "invalid", detail: "missing id/source/title/url" };
+  if (id == null || !source || !title) {
+    return { ok: false, reason: "invalid", detail: "missing id/source/title" };
   }
 
-  const start_date = toIso(pick(row, "start_date", "start", "start_datetime"));
-  const end_date = toIso(pick(row, "end_date", "end", "end_datetime"));
+  // url is required by the schema; fall back to the source org if absent.
+  const url = pick(row, "url", "link") ?? SOURCE_DEFAULT_URL[source] ?? GENERIC_URL;
+
+  const start_date = toIso(pick(row, "start_date", "startdate", "start", "start_datetime"));
+  const end_date = toIso(pick(row, "end_date", "enddate", "end", "end_datetime"));
 
   if (end_date && new Date(end_date) < now) {
     return { ok: false, reason: "expired" };
@@ -105,7 +120,9 @@ export function transformActivityRow(raw: RawRow, now = new Date()): TransformRe
     id,
     source,
     title,
-    tags: normalizeTags(splitRawTags(pick(row, "categories", "tags", "category"))),
+    tags: normalizeTags(
+      splitRawTags(pick(row, "categorieswrapped", "categories", "tags", "category")),
+    ),
     start_date,
     end_date,
     location_name: pick(row, "location_name", "venue", "location") ?? null,
