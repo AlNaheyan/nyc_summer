@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { recordCompletion } from "@/lib/completions/service";
 import { uploadQuestPhoto, publishCompletionPhoto, type PublishStatus } from "@/lib/feed/service";
 import { getTemplate } from "@/lib/quests/templates";
+import { seasonEnded } from "@/lib/season";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -16,6 +17,8 @@ const fieldsSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  if (seasonEnded()) return NextResponse.json({ error: "season_over" }, { status: 403 });
+
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
