@@ -4,80 +4,117 @@ import { nycDateString } from "@/lib/time";
 import { spinQuest } from "./spin";
 import { getTemplate } from "./templates";
 import { POINTS } from "@/lib/gamification/points";
+import {
+  canStartNewQuest,
+  completedCount,
+  isFreeReroll,
+  nextSlot,
+  questsRemaining,
+  rerollsUsedToday,
+  FREE_REROLLS_PER_DAY,
+} from "./day-rules";
 
-export interface DailyQuestResult {
-  dailyQuest: DailyQuest;
-  template: QuestTemplate;
+export interface DayState {
+  /** Active (incomplete) quest + its template, or null when none is in progress. */
+  dailyQuest: DailyQuest | null;
+  template: QuestTemplate | null;
   created: boolean;
+  completedToday: number;
+  questsRemaining: number;
+  freeRerollAvailable: boolean;
+  /** True when all 3 quests for the day are done. */
+  allDone: boolean;
 }
 
-function withTemplate(row: DailyQuest, created: boolean): DailyQuestResult {
-  const template = getTemplate(row.quest_template_id);
-  if (!template) throw new Error(`Unknown quest template: ${row.quest_template_id}`);
-  return { dailyQuest: row, template, created };
-}
-
-async function fetchToday(
+async function fetchDayRows(
   client: SupabaseClient,
   userId: string,
   questDate: string,
-): Promise<DailyQuest | null> {
+): Promise<DailyQuest[]> {
   const { data, error } = await client
     .from("daily_quests")
     .select("*")
     .eq("user_id", userId)
     .eq("quest_date", questDate)
-    .maybeSingle();
+    .order("slot", { ascending: true });
   if (error) throw error;
-  return (data as DailyQuest) ?? null;
+  return (data ?? []) as DailyQuest[];
+}
+
+function template(row: DailyQuest): QuestTemplate {
+  const t = getTemplate(row.quest_template_id);
+  if (!t) throw new Error(`Unknown quest template: ${row.quest_template_id}`);
+  return t;
+}
+
+function stateFrom(rows: DailyQuest[], active: DailyQuest | null, created: boolean): DayState {
+  return {
+    dailyQuest: active,
+    template: active ? template(active) : null,
+    created,
+    completedToday: completedCount(rows),
+    questsRemaining: questsRemaining(rows),
+    freeRerollAvailable: isFreeReroll(rows),
+    allDone: active == null && !canStartNewQuest(rows),
+  };
 }
 
 /**
- * Return today's locked quest, creating it on first spin. The UNIQUE
- * (user_id, quest_date) constraint makes this safe under a double-tap race:
- * on conflict we just refetch the existing row.
+ * Return today's active quest, or create the next one on spin. Hands back the
+ * existing in-progress quest if there is one; otherwise creates the next slot
+ * (up to 3/day). When all 3 are done, returns allDone with no quest.
  */
-export async function getOrCreateDailyQuest(
+export async function getActiveOrNextQuest(
   client: SupabaseClient,
   userId: string,
   isAdult: boolean,
   now: Date = new Date(),
-): Promise<DailyQuestResult> {
+): Promise<DayState> {
   const questDate = nycDateString(now);
+  const rows = await fetchDayRows(client, userId, questDate);
 
-  const existing = await fetchToday(client, userId, questDate);
-  if (existing) return withTemplate(existing, false);
+  const active = rows.find((r) => !r.completed) ?? null;
+  if (active) return stateFrom(rows, active, false);
 
-  const template = spinQuest(isAdult);
-  if (!template) throw new Error("No eligible quest templates");
+  if (!canStartNewQuest(rows)) return stateFrom(rows, null, false); // all 3 done
+
+  const picked = spinQuest(isAdult);
+  if (!picked) throw new Error("No eligible quest templates");
 
   const { data, error } = await client
     .from("daily_quests")
-    .insert({ user_id: userId, quest_template_id: template.id, quest_date: questDate })
+    .insert({
+      user_id: userId,
+      quest_template_id: picked.id,
+      quest_date: questDate,
+      slot: nextSlot(rows),
+    })
     .select("*")
     .single();
 
   if (error) {
-    // Unique violation → another request won the race; return that row.
     if (error.code === "23505") {
-      const row = await fetchToday(client, userId, questDate);
-      if (row) return withTemplate(row, false);
+      // Race: another request created this slot — re-read and return active.
+      const refreshed = await fetchDayRows(client, userId, questDate);
+      const a = refreshed.find((r) => !r.completed) ?? null;
+      return stateFrom(refreshed, a, false);
     }
     throw error;
   }
 
-  return withTemplate(data as DailyQuest, true);
+  const newRows = [...rows, data as DailyQuest];
+  return stateFrom(newRows, data as DailyQuest, true);
 }
 
 export type RerollResult =
-  | { ok: true; result: DailyQuestResult; pointsRemaining: number }
-  | { ok: false; error: "insufficient_points" | "no_quest_today" };
+  | { ok: true; state: DayState; pointsRemaining: number; wasFree: boolean }
+  | { ok: false; error: "insufficient_points" | "no_active_quest" };
 
 /**
- * Spend points to re-roll today's quest. Debits the configured cost, picks a
- * new template, and bumps spins_used.
+ * Re-roll the active quest. The first re-roll each day is free; subsequent ones
+ * cost POINTS.rerollCost.
  */
-export async function rerollDailyQuest(
+export async function rerollActiveQuest(
   client: SupabaseClient,
   userId: string,
   isAdult: boolean,
@@ -85,29 +122,42 @@ export async function rerollDailyQuest(
   now: Date = new Date(),
 ): Promise<RerollResult> {
   const questDate = nycDateString(now);
+  const rows = await fetchDayRows(client, userId, questDate);
 
-  const existing = await fetchToday(client, userId, questDate);
-  if (!existing) return { ok: false, error: "no_quest_today" };
-  if (currentPoints < POINTS.rerollCost) return { ok: false, error: "insufficient_points" };
+  const active = rows.find((r) => !r.completed) ?? null;
+  if (!active) return { ok: false, error: "no_active_quest" };
 
-  const template = spinQuest(isAdult);
-  if (!template) throw new Error("No eligible quest templates");
+  const free = isFreeReroll(rows);
+  if (!free && currentPoints < POINTS.rerollCost) {
+    return { ok: false, error: "insufficient_points" };
+  }
 
-  const pointsRemaining = currentPoints - POINTS.rerollCost;
+  const picked = spinQuest(isAdult);
+  if (!picked) throw new Error("No eligible quest templates");
+
+  const pointsRemaining = free ? currentPoints : currentPoints - POINTS.rerollCost;
 
   const { data, error } = await client
     .from("daily_quests")
-    .update({ quest_template_id: template.id, spins_used: existing.spins_used + 1 })
-    .eq("id", existing.id)
+    .update({ quest_template_id: picked.id, spins_used: active.spins_used + 1 })
+    .eq("id", active.id)
     .select("*")
     .single();
   if (error) throw error;
 
-  const { error: pErr } = await client
-    .from("profiles")
-    .update({ points: pointsRemaining })
-    .eq("id", userId);
-  if (pErr) throw pErr;
+  if (!free) {
+    const { error: pErr } = await client
+      .from("profiles")
+      .update({ points: pointsRemaining })
+      .eq("id", userId);
+    if (pErr) throw pErr;
+  }
 
-  return { ok: true, result: withTemplate(data as DailyQuest, false), pointsRemaining };
+  // Recompute state with the updated active row.
+  const updatedRows = rows.map((r) => (r.id === active.id ? (data as DailyQuest) : r));
+  const freeNowUsed = rerollsUsedToday(updatedRows) >= FREE_REROLLS_PER_DAY;
+  const state = stateFrom(updatedRows, data as DailyQuest, false);
+  state.freeRerollAvailable = !freeNowUsed;
+
+  return { ok: true, state, pointsRemaining, wasFree: free };
 }

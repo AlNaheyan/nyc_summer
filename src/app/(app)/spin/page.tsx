@@ -4,6 +4,13 @@ import { getProfile } from "@/lib/profiles/service";
 import { getTemplate } from "@/lib/quests/templates";
 import { nycDateString } from "@/lib/time";
 import { seasonEnded } from "@/lib/season";
+import {
+  completedCount,
+  isFreeReroll,
+  questsRemaining,
+  canStartNewQuest,
+} from "@/lib/quests/day-rules";
+import type { DailyQuest } from "@/lib/types";
 import { SpinView } from "@/components/SpinView";
 import { EndOfSeason } from "@/components/EndOfSeason";
 
@@ -17,36 +24,27 @@ export default async function SpinPage() {
   }
 
   const today = nycDateString();
-
-  const { data: daily } = await supabase
+  const { data } = await supabase
     .from("daily_quests")
-    .select("quest_template_id")
+    .select("*")
     .eq("user_id", user.id)
     .eq("quest_date", today)
-    .maybeSingle();
+    .order("slot", { ascending: true });
+  const rows = (data ?? []) as DailyQuest[];
 
-  const initialQuest = daily ? getTemplate(daily.quest_template_id) ?? null : null;
-
-  // Has the user completed today's quest already?
-  let completedToday = false;
-  if (daily) {
-    const { data: last } = await supabase
-      .from("completions")
-      .select("completed_at")
-      .eq("user_id", user.id)
-      .order("completed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    completedToday = Boolean(last && nycDateString(new Date(last.completed_at)) === today);
-  }
+  const active = rows.find((r) => !r.completed) ?? null;
+  const allDone = active == null && !canStartNewQuest(rows);
 
   return (
     <SpinView
       displayName={profile.display_name}
       points={profile.points}
       currentStreak={profile.current_streak}
-      initialQuest={initialQuest}
-      completedToday={completedToday}
+      initialQuest={active ? getTemplate(active.quest_template_id) ?? null : null}
+      completedToday={completedCount(rows)}
+      questsRemaining={questsRemaining(rows)}
+      freeRerollAvailable={isFreeReroll(rows)}
+      allDone={allDone}
     />
   );
 }

@@ -7,15 +7,19 @@ import type { QuestTemplate } from "@/lib/types";
 import type { MatchedOption } from "@/lib/matcher";
 import { BOROUGHS } from "@/lib/geo/borough";
 import { POINTS } from "@/lib/gamification/points";
+import { MAX_QUESTS_PER_DAY } from "@/lib/quests/day-rules";
 
-type Phase = "idle" | "spinning" | "quest" | "done";
+type Phase = "idle" | "spinning" | "quest" | "done" | "allDone";
 
 interface Props {
   displayName: string;
   points: number;
   currentStreak: number;
   initialQuest: QuestTemplate | null;
-  completedToday: boolean;
+  completedToday: number;
+  questsRemaining: number;
+  freeRerollAvailable: boolean;
+  allDone: boolean;
 }
 
 interface DoneResult {
@@ -24,19 +28,23 @@ interface DoneResult {
   newBadges: string[];
   feedStatus: "allowed" | "held" | "blocked" | "rate_limited" | "none";
   feedPostId: string | null;
+  questsRemaining: number;
+  allDone: boolean;
 }
 
 export function SpinView(props: Props) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const [phase, setPhase] = useState<Phase>(
-    props.completedToday ? "done" : props.initialQuest ? "quest" : "idle",
+    props.allDone ? "allDone" : props.initialQuest ? "quest" : "idle",
   );
   const [quest, setQuest] = useState<QuestTemplate | null>(props.initialQuest);
   const [points, setPoints] = useState(props.points);
+  const [completedToday, setCompletedToday] = useState(props.completedToday);
+  const [freeReroll, setFreeReroll] = useState(props.freeRerollAvailable);
   const [options, setOptions] = useState<MatchedOption[] | null>(null);
   const [optionsLoading, setOptionsLoading] = useState(false);
-  const [borough, setBorough] = useState<string>("");
+  const [borough, setBorough] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DoneResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -76,16 +84,26 @@ export function SpinView(props: Props) {
 
   async function spin() {
     setError(null);
+    setResult(null);
+    setOptions(null);
     setPhase("spinning");
     try {
       const res = await fetch("/api/spin", { method: "POST" });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      // Let the wheel turn briefly before revealing.
-      setTimeout(() => {
-        setQuest(data.questTemplate);
-        setPhase("quest");
-      }, reduce ? 0 : 1100);
+      setTimeout(
+        () => {
+          if (data.allDone || !data.questTemplate) {
+            setPhase("allDone");
+            return;
+          }
+          setQuest(data.questTemplate);
+          setFreeReroll(data.freeRerollAvailable);
+          setCompletedToday(data.completedToday);
+          setPhase("quest");
+        },
+        reduce ? 0 : 1100,
+      );
     } catch {
       setError("Couldn't spin. Try again.");
       setPhase("idle");
@@ -104,6 +122,7 @@ export function SpinView(props: Props) {
       const data = await res.json();
       setQuest(data.questTemplate);
       setPoints(data.pointsRemaining);
+      setFreeReroll(data.freeRerollAvailable);
       setOptions(null);
     } catch {
       setError("Couldn't re-roll. Try again.");
@@ -142,8 +161,11 @@ export function SpinView(props: Props) {
         newBadges: data.newBadges,
         feedStatus: data.feedStatus ?? "none",
         feedPostId: data.feedPostId ?? null,
+        questsRemaining: data.questsRemaining ?? 0,
+        allDone: data.allDone ?? false,
       });
       setPoints((p) => p + data.pointsAwarded);
+      setCompletedToday(data.questsCompletedToday ?? completedToday + 1);
       setSheet(null);
       setPhase("done");
       router.refresh();
@@ -159,7 +181,10 @@ export function SpinView(props: Props) {
       <header className="mb-6 flex items-center justify-between">
         <div>
           <p className="text-sm text-foreground/60">Hey {props.displayName} 👋</p>
-          <h1 className="font-display text-2xl font-extrabold text-coral">Today&apos;s Quest</h1>
+          <h1 className="font-display text-2xl font-extrabold text-coral">Today&apos;s Quests</h1>
+          <p className="mt-0.5 text-xs text-foreground/50">
+            {completedToday}/{MAX_QUESTS_PER_DAY} done today
+          </p>
         </div>
         <div className="flex gap-3 text-right text-sm">
           <Stat label="Points" value={points} />
@@ -183,7 +208,11 @@ export function SpinView(props: Props) {
             disabled={phase === "spinning"}
             className="rounded-full bg-coral px-10 py-4 text-lg font-bold text-white shadow-card transition active:scale-[0.97] disabled:opacity-70"
           >
-            {phase === "spinning" ? "Spinning…" : "Spin the wheel"}
+            {phase === "spinning"
+              ? "Spinning…"
+              : completedToday > 0
+                ? "Spin your next quest"
+                : "Spin the wheel"}
           </button>
         </div>
       )}
@@ -195,7 +224,7 @@ export function SpinView(props: Props) {
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold">Where to go</h2>
             <button onClick={reroll} className="text-sm font-medium text-sky underline-offset-2 hover:underline">
-              Re-roll ({POINTS.rerollCost} pts)
+              {freeReroll ? "Re-roll (free)" : `Re-roll (${POINTS.rerollCost} pts)`}
             </button>
           </div>
 
@@ -220,16 +249,25 @@ export function SpinView(props: Props) {
         </div>
       )}
 
+      {phase === "done" && (
+        <DoneCard
+          result={result}
+          onNext={() => {
+            setQuest(null);
+            void spin();
+          }}
+          onJournal={() => router.push("/journal")}
+        />
+      )}
+
+      {phase === "allDone" && <AllDoneCard onJournal={() => router.push("/journal")} />}
+
       {sheet && (
         <MarkDoneSheet
           submitting={submitting}
           onClose={() => setSheet(null)}
           onSubmit={(o) => submitDone({ ...o, activityId: sheet.activityId })}
         />
-      )}
-
-      {phase === "done" && (
-        <DoneCard result={result} onJournal={() => router.push("/journal")} />
       )}
     </main>
   );
@@ -342,10 +380,7 @@ function MarkDoneSheet({
 
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-t-card bg-background p-5 pb-8"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-md rounded-t-card bg-background p-5 pb-8" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-display text-xl font-extrabold">Mark it done</h3>
         <p className="mt-1 text-sm text-foreground/60">Add a photo to share it (optional).</p>
 
@@ -406,7 +441,16 @@ const FEED_MESSAGE: Record<DoneResult["feedStatus"], string | null> = {
   none: null,
 };
 
-function DoneCard({ result, onJournal }: { result: DoneResult | null; onJournal: () => void }) {
+function DoneCard({
+  result,
+  onNext,
+  onJournal,
+}: {
+  result: DoneResult | null;
+  onNext: () => void;
+  onJournal: () => void;
+}) {
+  const moreLeft = result ? !result.allDone && result.questsRemaining > 0 : false;
   return (
     <div className="flex flex-col items-center gap-4 py-12 text-center">
       <div className="text-6xl" aria-hidden>🎉</div>
@@ -427,7 +471,39 @@ function DoneCard({ result, onJournal }: { result: DoneResult | null; onJournal:
       {result?.feedStatus === "allowed" && result.feedPostId && (
         <ShareButton feedPostId={result.feedPostId} questHint="my summer quest" />
       )}
-      <p className="text-sm text-foreground/55">Come back tomorrow for a new quest.</p>
+
+      {moreLeft ? (
+        <>
+          <p className="text-sm text-foreground/55">
+            {result?.questsRemaining} more quest{result && result.questsRemaining > 1 ? "s" : ""} available today!
+          </p>
+          <button onClick={onNext} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">
+            Spin next quest →
+          </button>
+          <button onClick={onJournal} className="text-sm font-medium text-foreground/50 underline-offset-2 hover:underline">
+            See my journal
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-foreground/55">That&apos;s all 3 quests today — amazing. See you tomorrow!</p>
+          <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">
+            See my journal
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AllDoneCard({ onJournal }: { onJournal: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-16 text-center">
+      <div className="text-6xl" aria-hidden>🏆</div>
+      <h2 className="font-display text-2xl font-extrabold text-coral">All done for today!</h2>
+      <p className="max-w-xs text-balance text-foreground/70">
+        You&apos;ve completed all {MAX_QUESTS_PER_DAY} quests today. Come back tomorrow for more.
+      </p>
       <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">
         See my journal
       </button>

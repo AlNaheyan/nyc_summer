@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/profiles/service";
-import { getOrCreateDailyQuest } from "@/lib/quests/daily";
+import { getActiveOrNextQuest } from "@/lib/quests/daily";
 import { seasonEnded } from "@/lib/season";
 
 export async function POST() {
@@ -15,15 +15,15 @@ export async function POST() {
   const profile = await getProfile(supabase, user.id);
   if (!profile) return NextResponse.json({ error: "no_profile" }, { status: 403 });
 
-  const { dailyQuest, template } = await getOrCreateDailyQuest(
-    supabase,
-    user.id,
-    profile.is_adult,
-  );
+  const state = await getActiveOrNextQuest(supabase, user.id, profile.is_adult);
 
   return NextResponse.json({
-    questTemplate: template,
-    dailyQuestId: dailyQuest.id,
-    spinsUsed: dailyQuest.spins_used,
+    questTemplate: state.template,
+    dailyQuestId: state.dailyQuest?.id ?? null,
+    slot: state.dailyQuest?.slot ?? null,
+    completedToday: state.completedToday,
+    questsRemaining: state.questsRemaining,
+    freeRerollAvailable: state.freeRerollAvailable,
+    allDone: state.allDone,
   });
 }

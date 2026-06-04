@@ -4,6 +4,7 @@ import { nycDateString } from "@/lib/time";
 import { applyCompletion } from "@/lib/gamification/streak";
 import { computePoints } from "@/lib/gamification/points";
 import { evaluateBadges, type UserStats } from "@/lib/gamification/evaluate-badges";
+import { MAX_QUESTS_PER_DAY } from "@/lib/quests/day-rules";
 
 export interface RecordCompletionInput {
   userId: string;
@@ -20,6 +21,9 @@ export interface RecordCompletionResult {
   streak: number;
   longestStreak: number;
   newBadges: string[];
+  questsCompletedToday: number;
+  questsRemaining: number;
+  allDone: boolean;
 }
 
 /** Aggregate the stats badge rules are evaluated against. */
@@ -66,12 +70,15 @@ export async function recordCompletion(
 ): Promise<RecordCompletionResult> {
   const today = nycDateString(now);
 
-  // Active quest for today (server-derived).
+  // Active (incomplete) quest for today, lowest slot first. Server-derived.
   const { data: daily, error: dErr } = await admin
     .from("daily_quests")
-    .select("quest_template_id")
+    .select("id, quest_template_id")
     .eq("user_id", input.userId)
     .eq("quest_date", today)
+    .eq("completed", false)
+    .order("slot", { ascending: true })
+    .limit(1)
     .maybeSingle();
   if (dErr) throw dErr;
   if (!daily) throw new Error("no_active_quest");
@@ -145,11 +152,24 @@ export async function recordCompletion(
     if (bErr) throw bErr;
   }
 
+  // Mark this quest slot done, then report day progress (up to 3/day).
+  await admin.from("daily_quests").update({ completed: true }).eq("id", daily.id);
+  const { count: doneCount } = await admin
+    .from("daily_quests")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", input.userId)
+    .eq("quest_date", today)
+    .eq("completed", true);
+  const questsCompletedToday = doneCount ?? 1;
+
   return {
     completion: completionRow as Completion,
     pointsAwarded: points.total,
     streak: streak.current_streak,
     longestStreak: streak.longest_streak,
     newBadges,
+    questsCompletedToday,
+    questsRemaining: Math.max(0, MAX_QUESTS_PER_DAY - questsCompletedToday),
+    allDone: questsCompletedToday >= MAX_QUESTS_PER_DAY,
   };
 }

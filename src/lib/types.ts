@@ -55,6 +55,8 @@ export interface DailyQuest {
   user_id: string;
   quest_template_id: string;
   quest_date: string;
+  slot: number;
+  completed: boolean;
   spins_used: number;
   created_at: string;
 }
