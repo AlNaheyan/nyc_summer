@@ -28,7 +28,9 @@ const optionalSecret = z.preprocess(
 
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  MODERATION_API_KEY: optionalSecret, // required for Phase 2
+  MODERATION_API_KEY: optionalSecret, // legacy/generic; unused with Sightengine
+  SIGHTENGINE_API_USER: optionalSecret,
+  SIGHTENGINE_API_SECRET: optionalSecret,
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;
