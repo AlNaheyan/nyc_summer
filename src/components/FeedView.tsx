@@ -64,11 +64,49 @@ export function FeedView() {
 function FeedCard({ post }: { post: PublicFeedPost }) {
   const [reported, setReported] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reacted, setReacted] = useState(post.viewerReacted);
+  const [reactionCount, setReactionCount] = useState(post.reactionCount);
 
   async function report() {
     setMenuOpen(false);
     setReported(true);
     await fetch(`/api/feed/${post.id}/report`, { method: "POST" });
+  }
+
+  async function toggleReaction() {
+    // Optimistic.
+    const next = !reacted;
+    setReacted(next);
+    setReactionCount((c) => c + (next ? 1 : -1));
+    try {
+      const res = await fetch(`/api/feed/${post.id}/react`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setReacted(data.reacted);
+        setReactionCount(data.count);
+      } else throw new Error();
+    } catch {
+      setReacted(!next);
+      setReactionCount((c) => c + (next ? -1 : 1));
+    }
+  }
+
+  async function share() {
+    const url = `${window.location.origin}/s/${post.id}`;
+    const shareData = { title: "Summer Quest NYC", text: `${post.questTitle} — ${post.authorName}`, url };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        /* cancelled — fall through to copy */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      /* ignore */
+    }
   }
 
   return (
@@ -106,6 +144,24 @@ function FeedCard({ post }: { post: PublicFeedPost }) {
       <img src={post.photoUrl} alt={post.questTitle} loading="lazy" className="aspect-square w-full object-cover" />
 
       <div className="px-4 py-3">
+        <div className="mb-2 flex items-center gap-3">
+          <button
+            onClick={toggleReaction}
+            aria-pressed={reacted}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
+              reacted ? "bg-coral/15 text-coral" : "bg-foreground/5 text-foreground/60"
+            }`}
+          >
+            <span aria-hidden>👍</span>
+            {reactionCount > 0 && reactionCount}
+          </button>
+          <button
+            onClick={share}
+            className="flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-sm font-medium text-foreground/60"
+          >
+            <span aria-hidden>↗</span> Share
+          </button>
+        </div>
         {post.caption && <p className="text-sm text-foreground/80">{post.caption}</p>}
         <p className="mt-1 text-xs text-foreground/45">
           {new Date(post.createdAt).toLocaleDateString()}

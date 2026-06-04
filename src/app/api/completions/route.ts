@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Photo + public → run the moderation gate into the feed.
     let feedStatus: PublishStatus | "none" = "none";
+    let feedPostId: string | null = null;
     if (uploaded && !fields.isPrivate) {
       const template = getTemplate(result.completion.quest_template_id);
       let locationName: string | null = null;
@@ -85,9 +86,10 @@ export async function POST(request: NextRequest) {
         locationName,
       });
       feedStatus = published.status;
+      feedPostId = published.feedPost?.id ?? null;
     }
 
-    return NextResponse.json({ ...result, feedStatus }, { status: 201 });
+    return NextResponse.json({ ...result, feedStatus, feedPostId }, { status: 201 });
   } catch (err) {
     if (err instanceof Error && err.message === "no_active_quest") {
       return NextResponse.json({ error: "no_active_quest" }, { status: 409 });

@@ -23,6 +23,7 @@ interface DoneResult {
   streak: number;
   newBadges: string[];
   feedStatus: "allowed" | "held" | "blocked" | "rate_limited" | "none";
+  feedPostId: string | null;
 }
 
 export function SpinView(props: Props) {
@@ -140,6 +141,7 @@ export function SpinView(props: Props) {
         streak: data.streak,
         newBadges: data.newBadges,
         feedStatus: data.feedStatus ?? "none",
+        feedPostId: data.feedPostId ?? null,
       });
       setPoints((p) => p + data.pointsAwarded);
       setSheet(null);
@@ -276,6 +278,16 @@ function OptionCard({ option, onDid, disabled }: { option: MatchedOption; onDid:
         >
           Details ↗
         </a>
+        {option.lat != null && option.lng != null && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${option.lat},${option.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 rounded-full bg-foreground/5 py-2 text-center text-sm font-medium text-foreground/60"
+          >
+            Map 📍
+          </a>
+        )}
         <button
           onClick={onDid}
           disabled={disabled}
@@ -412,11 +424,40 @@ function DoneCard({ result, onJournal }: { result: DoneResult | null; onJournal:
       {result && FEED_MESSAGE[result.feedStatus] && (
         <p className="max-w-xs text-balance text-sm text-foreground/65">{FEED_MESSAGE[result.feedStatus]}</p>
       )}
+      {result?.feedStatus === "allowed" && result.feedPostId && (
+        <ShareButton feedPostId={result.feedPostId} questHint="my summer quest" />
+      )}
       <p className="text-sm text-foreground/55">Come back tomorrow for a new quest.</p>
       <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">
         See my journal
       </button>
     </div>
+  );
+}
+
+function ShareButton({ feedPostId, questHint }: { feedPostId: string; questHint: string }) {
+  const [copied, setCopied] = useState(false);
+  async function share() {
+    const url = `${window.location.origin}/s/${feedPostId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Summer Quest NYC", text: questHint, url });
+        return;
+      } catch {
+        /* cancelled */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      /* ignore */
+    }
+  }
+  return (
+    <button onClick={share} className="rounded-full bg-sky px-8 py-3 font-semibold text-white shadow-card">
+      {copied ? "Link copied!" : "↗ Share your card"}
+    </button>
   );
 }
 

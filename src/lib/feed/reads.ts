@@ -8,6 +8,8 @@ export interface PublicFeedPost {
   locationName: string | null;
   authorName: string;
   createdAt: string;
+  reactionCount: number;
+  viewerReacted: boolean;
 }
 
 export interface FeedPage {
@@ -34,6 +36,7 @@ async function reportThreshold(admin: SupabaseClient): Promise<number> {
 export async function getFeedPage(
   admin: SupabaseClient,
   cursor: string | null,
+  viewerId: string | null = null,
 ): Promise<FeedPage> {
   const threshold = await reportThreshold(admin);
 
@@ -53,17 +56,36 @@ export async function getFeedPage(
   const rows = data ?? [];
   const hasMore = rows.length > PAGE_SIZE;
   const page = rows.slice(0, PAGE_SIZE);
+  const ids = page.map((r) => r.id as string);
+
+  // Reaction counts (+ whether the viewer reacted) for this page.
+  const counts = new Map<string, number>();
+  const viewerReacted = new Set<string>();
+  if (ids.length > 0) {
+    const { data: reactions } = await admin
+      .from("feed_reactions")
+      .select("feed_post_id, user_id")
+      .in("feed_post_id", ids);
+    for (const r of reactions ?? []) {
+      const pid = r.feed_post_id as string;
+      counts.set(pid, (counts.get(pid) ?? 0) + 1);
+      if (viewerId && r.user_id === viewerId) viewerReacted.add(pid);
+    }
+  }
 
   const posts: PublicFeedPost[] = page.map((r) => {
     const author = r.author as { display_name?: string } | null;
+    const id = r.id as string;
     return {
-      id: r.id as string,
+      id,
       photoUrl: r.photo_url as string,
       caption: (r.caption as string | null) ?? null,
       questTitle: r.quest_title as string,
       locationName: (r.location_name as string | null) ?? null,
       authorName: author?.display_name ?? "Explorer",
       createdAt: r.created_at as string,
+      reactionCount: counts.get(id) ?? 0,
+      viewerReacted: viewerReacted.has(id),
     };
   });
 
