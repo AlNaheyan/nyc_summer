@@ -20,9 +20,15 @@ export const publicEnv = publicSchema.parse({
  * Server-only env. NEVER import this from a client component.
  * Lazily validated so the public bundle never trips over missing secrets.
  */
+// Treat an empty string the same as unset (the .env.example ships the key blank).
+const optionalSecret = z.preprocess(
+  (v) => (v === "" ? undefined : v),
+  z.string().min(1).optional(),
+);
+
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  MODERATION_API_KEY: z.string().min(1).optional(), // required for Phase 2
+  MODERATION_API_KEY: optionalSecret, // required for Phase 2
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;
