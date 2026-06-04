@@ -22,6 +22,7 @@ interface DoneResult {
   pointsAwarded: number;
   streak: number;
   newBadges: string[];
+  feedStatus: "allowed" | "held" | "blocked" | "rate_limited" | "none";
 }
 
 export function SpinView(props: Props) {
@@ -38,6 +39,7 @@ export function SpinView(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DoneResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [sheet, setSheet] = useState<{ activityId?: number } | null>(null);
 
   const loadOptions = useCallback(
     async (templateId: string, boroughOverride?: string) => {
@@ -107,19 +109,40 @@ export function SpinView(props: Props) {
     }
   }
 
-  async function markDone(activityId?: number) {
+  async function submitDone(opts: {
+    activityId?: number;
+    photo?: File | null;
+    caption?: string;
+    isPublic?: boolean;
+  }) {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activityId: activityId ?? null }),
-      });
+      let res: Response;
+      if (opts.photo) {
+        const form = new FormData();
+        if (opts.activityId) form.set("activityId", String(opts.activityId));
+        if (opts.caption) form.set("caption", opts.caption);
+        form.set("isPrivate", opts.isPublic === false ? "true" : "false");
+        form.set("photo", opts.photo);
+        res = await fetch("/api/completions", { method: "POST", body: form });
+      } else {
+        res = await fetch("/api/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ activityId: opts.activityId ?? null, caption: opts.caption ?? null }),
+        });
+      }
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setResult({ pointsAwarded: data.pointsAwarded, streak: data.streak, newBadges: data.newBadges });
+      setResult({
+        pointsAwarded: data.pointsAwarded,
+        streak: data.streak,
+        newBadges: data.newBadges,
+        feedStatus: data.feedStatus ?? "none",
+      });
       setPoints((p) => p + data.pointsAwarded);
+      setSheet(null);
       setPhase("done");
       router.refresh();
     } catch {
@@ -181,16 +204,26 @@ export function SpinView(props: Props) {
           )}
 
           {!optionsLoading &&
-            options?.map((o) => <OptionCard key={o.id} option={o} onDid={() => markDone(o.id)} disabled={submitting} />)}
+            options?.map((o) => (
+              <OptionCard key={o.id} option={o} onDid={() => setSheet({ activityId: o.id })} disabled={submitting} />
+            ))}
 
           <button
-            onClick={() => markDone()}
+            onClick={() => setSheet({})}
             disabled={submitting}
             className="mt-2 rounded-full border-2 border-coral px-6 py-3 font-semibold text-coral transition active:scale-[0.98] disabled:opacity-60"
           >
-            {submitting ? "Saving…" : "I did it (mark done)"}
+            I did it (mark done)
           </button>
         </div>
+      )}
+
+      {sheet && (
+        <MarkDoneSheet
+          submitting={submitting}
+          onClose={() => setSheet(null)}
+          onSubmit={(o) => submitDone({ ...o, activityId: sheet.activityId })}
+        />
       )}
 
       {phase === "done" && (
@@ -276,6 +309,91 @@ function EvergreenNote({ borough, setBorough }: { borough: string; setBorough: (
   );
 }
 
+function MarkDoneSheet({
+  submitting,
+  onClose,
+  onSubmit,
+}: {
+  submitting: boolean;
+  onClose: () => void;
+  onSubmit: (o: { photo?: File | null; caption?: string; isPublic?: boolean }) => void;
+}) {
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
+
+  function pick(file: File | null) {
+    setPhoto(file);
+    setPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-t-card bg-background p-5 pb-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="font-display text-xl font-extrabold">Mark it done</h3>
+        <p className="mt-1 text-sm text-foreground/60">Add a photo to share it (optional).</p>
+
+        <label className="mt-4 flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-foreground/20 bg-white/60 text-foreground/50">
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-sm">📷 Tap to add a photo</span>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => pick(e.target.files?.[0] ?? null)}
+          />
+        </label>
+
+        <textarea
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          maxLength={280}
+          placeholder="Say something (optional)…"
+          className="mt-3 w-full rounded-2xl border border-foreground/15 bg-white px-4 py-3 text-sm outline-none focus:border-coral"
+          rows={2}
+        />
+
+        {photo && (
+          <label className="mt-3 flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3 text-sm">
+            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="h-5 w-5 accent-coral" />
+            <span>Post to the public feed (after moderation)</span>
+          </label>
+        )}
+
+        <div className="mt-5 flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-full border border-foreground/20 py-3 font-semibold text-foreground/70">
+            Cancel
+          </button>
+          <button
+            onClick={() => onSubmit({ photo, caption: caption.trim() || undefined, isPublic })}
+            disabled={submitting}
+            className="flex-1 rounded-full bg-coral py-3 font-semibold text-white disabled:opacity-60"
+          >
+            {submitting ? "Saving…" : "Done!"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FEED_MESSAGE: Record<DoneResult["feedStatus"], string | null> = {
+  allowed: "📸 Your photo is live on the feed!",
+  held: "📸 Your photo is in review and will appear once approved.",
+  blocked: "Your photo couldn't be posted (failed moderation), but the quest still counts.",
+  rate_limited: "You've hit today's post limit — quest still counts!",
+  none: null,
+};
+
 function DoneCard({ result, onJournal }: { result: DoneResult | null; onJournal: () => void }) {
   return (
     <div className="flex flex-col items-center gap-4 py-12 text-center">
@@ -290,6 +408,9 @@ function DoneCard({ result, onJournal }: { result: DoneResult | null; onJournal:
         <p className="rounded-full bg-sun-soft px-4 py-2 text-sm font-medium">
           🏅 New badge{result.newBadges.length > 1 ? "s" : ""}: {result.newBadges.join(", ")}
         </p>
+      )}
+      {result && FEED_MESSAGE[result.feedStatus] && (
+        <p className="max-w-xs text-balance text-sm text-foreground/65">{FEED_MESSAGE[result.feedStatus]}</p>
       )}
       <p className="text-sm text-foreground/55">Come back tomorrow for a new quest.</p>
       <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">

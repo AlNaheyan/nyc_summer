@@ -17,3 +17,16 @@ export async function requireUser(): Promise<User> {
   if (!user) redirect("/login");
   return user;
 }
+
+/** True when the signed-in user has the admin flag on their profile. */
+export async function isAdmin(): Promise<boolean> {
+  const user = await getUser();
+  if (!user) return false;
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+  return Boolean(data?.is_admin);
+}
