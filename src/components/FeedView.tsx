@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicFeedPost } from "@/lib/feed/reads";
+import { Avatar, handleFor } from "./Avatar";
 
 export function FeedView() {
   const [posts, setPosts] = useState<PublicFeedPost[]>([]);
@@ -33,16 +34,18 @@ export function FeedView() {
   }, [load]);
 
   return (
-    <main className="px-4 pb-8 pt-6">
-      <h1 className="mb-4 px-1 font-display text-2xl font-extrabold text-coral">Feed</h1>
+    <div className="min-h-dvh lg:min-h-0">
+      <header className="sticky top-0 z-10 border-b border-foreground/10 bg-background/80 px-4 py-3 backdrop-blur lg:rounded-t-card">
+        <h1 className="font-display text-xl font-extrabold">Summer Feed</h1>
+      </header>
 
       {posts.length === 0 && done && (
-        <p className="rounded-card bg-white/70 p-8 text-center text-foreground/60">
+        <p className="m-4 rounded-card bg-white/70 p-8 text-center text-foreground/60">
           No posts yet. Complete a quest with a public photo to be first! 📸
         </p>
       )}
 
-      <ul className="flex flex-col gap-5">
+      <ul>
         {posts.map((post) => (
           <FeedCard key={post.id} post={post} />
         ))}
@@ -52,12 +55,12 @@ export function FeedView() {
         <button
           onClick={load}
           disabled={loading}
-          className="mx-auto mt-6 block rounded-full bg-white px-6 py-2.5 text-sm font-medium shadow-sm disabled:opacity-60"
+          className="mx-auto my-5 block rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-coral shadow-sm disabled:opacity-60"
         >
           {loading ? "Loading…" : "Load more"}
         </button>
       )}
-    </main>
+    </div>
   );
 }
 
@@ -74,7 +77,6 @@ function FeedCard({ post }: { post: PublicFeedPost }) {
   }
 
   async function toggleReaction() {
-    // Optimistic.
     const next = !reacted;
     setReacted(next);
     setReactionCount((c) => c + (next ? 1 : -1));
@@ -110,64 +112,83 @@ function FeedCard({ post }: { post: PublicFeedPost }) {
   }
 
   return (
-    <li className="overflow-hidden rounded-card bg-white shadow-card">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="min-w-0">
-          <p className="truncate font-semibold">{post.authorName}</p>
-          <p className="truncate text-xs text-foreground/55">
-            {post.questTitle}
-            {post.locationName && ` · ${post.locationName}`}
-          </p>
-        </div>
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Post options"
-            className="px-2 text-foreground/40"
-          >
-            ⋯
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-7 z-10 w-28 rounded-xl border border-foreground/10 bg-white py-1 shadow-lg">
-              <button
-                onClick={report}
-                className="block w-full px-3 py-1.5 text-left text-sm text-coral"
-              >
-                Report
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+    <li className="flex gap-3 border-b border-foreground/10 px-4 py-3 transition hover:bg-white/40">
+      <Avatar name={post.authorName} size={44} />
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={post.photoUrl} alt={post.questTitle} loading="lazy" className="aspect-square w-full object-cover" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 text-sm">
+          <span className="truncate font-bold">{post.authorName}</span>
+          <span className="truncate text-foreground/45">{handleFor(post.authorName)}</span>
+          <span className="text-foreground/40">· {relativeTime(post.createdAt)}</span>
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Post options"
+              className="rounded-full px-2 text-foreground/40 hover:bg-foreground/10"
+            >
+              ⋯
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-7 z-10 w-28 rounded-xl border border-foreground/10 bg-white py-1 shadow-lg">
+                <button onClick={report} className="block w-full px-3 py-1.5 text-left text-sm text-coral">
+                  Report
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
-      <div className="px-4 py-3">
-        <div className="mb-2 flex items-center gap-3">
+        <p className="mt-0.5 truncate text-xs font-medium text-sky">
+          🎯 {post.questTitle}
+          {post.locationName && <span className="text-foreground/45"> · 📍 {post.locationName}</span>}
+        </p>
+
+        {post.caption && (
+          <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-snug text-foreground/90">{post.caption}</p>
+        )}
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={post.photoUrl}
+          alt={post.questTitle}
+          loading="lazy"
+          className="mt-2.5 aspect-square w-full rounded-2xl border border-foreground/10 object-cover"
+        />
+
+        <div className="mt-2 flex items-center gap-1 text-foreground/50">
           <button
             onClick={toggleReaction}
             aria-pressed={reacted}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
-              reacted ? "bg-coral/15 text-coral" : "bg-foreground/5 text-foreground/60"
+            className={`group flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition ${
+              reacted ? "bg-coral/15 text-coral" : "hover:bg-coral/10 hover:text-coral"
             }`}
           >
             <span aria-hidden>👍</span>
-            {reactionCount > 0 && reactionCount}
+            <span className="min-w-3 text-left">{reactionCount > 0 ? reactionCount : ""}</span>
           </button>
           <button
             onClick={share}
-            className="flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-sm font-medium text-foreground/60"
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition hover:bg-sky/10 hover:text-sky"
           >
             <span aria-hidden>↗</span> Share
           </button>
+          {reported && <span className="ml-2 text-xs text-foreground/40">Reported, thanks</span>}
         </div>
-        {post.caption && <p className="text-sm text-foreground/80">{post.caption}</p>}
-        <p className="mt-1 text-xs text-foreground/45">
-          {new Date(post.createdAt).toLocaleDateString()}
-          {reported && <span className="ml-2 text-foreground/40">· Reported, thanks</span>}
-        </p>
       </div>
     </li>
   );
+}
+
+/** Compact relative time: 12s · 5m · 3h · 2d · then a date. */
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
