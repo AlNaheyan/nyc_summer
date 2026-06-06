@@ -39,3 +39,6 @@ next-env.d.ts
 
 # internal docs
 /docs
+
+# brainstorming visual companion
+.superpowers/

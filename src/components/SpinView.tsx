@@ -5,13 +5,14 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import type { QuestTemplate } from "@/lib/types";
 import type { MatchedOption } from "@/lib/matcher";
+import { LocationDeck } from "@/components/LocationDeck";
 import { BOROUGHS } from "@/lib/geo/borough";
 import { POINTS } from "@/lib/gamification/points";
 import { MAX_QUESTS_PER_DAY } from "@/lib/quests/day-rules";
 
 type Phase = "idle" | "spinning" | "quest" | "done" | "allDone";
 
-interface Props {
+export interface SpinViewProps {
   displayName: string;
   points: number;
   currentStreak: number;
@@ -32,12 +33,12 @@ interface DoneResult {
   allDone: boolean;
 }
 
-export function SpinView(props: Props) {
+export function SpinView(props: SpinViewProps) {
   const router = useRouter();
   const reduce = useReducedMotion();
-  const [phase, setPhase] = useState<Phase>(
-    props.allDone ? "allDone" : props.initialQuest ? "quest" : "idle",
-  );
+  // Always open on the wheel (unless the day is done). Spinning reveals the
+  // active quest if one already exists, or rolls the next one.
+  const [phase, setPhase] = useState<Phase>(props.allDone ? "allDone" : "idle");
   const [quest, setQuest] = useState<QuestTemplate | null>(props.initialQuest);
   const [points, setPoints] = useState(props.points);
   const [completedToday, setCompletedToday] = useState(props.completedToday);
@@ -196,13 +197,32 @@ export function SpinView(props: Props) {
 
       {(phase === "idle" || phase === "spinning") && (
         <div className="flex flex-col items-center gap-8 py-10">
-          <motion.div
-            animate={phase === "spinning" && !reduce ? { rotate: 360 * 4 } : { rotate: 0 }}
-            transition={{ duration: 1.1, ease: "easeOut" }}
-            className="flex h-44 w-44 items-center justify-center rounded-full bg-gradient-to-br from-sun via-coral to-sky text-6xl shadow-card"
-          >
-            🎡
-          </motion.div>
+          <div className="relative h-48 w-48">
+            {/* pointer */}
+            <div
+              className="absolute left-1/2 top-[-6px] z-10 h-0 w-0 -translate-x-1/2"
+              style={{
+                borderLeft: "11px solid transparent",
+                borderRight: "11px solid transparent",
+                borderTop: "18px solid #2a1a12",
+              }}
+              aria-hidden
+            />
+            <motion.div
+              animate={phase === "spinning" && !reduce ? { rotate: 360 * 4 + 90 } : { rotate: 0 }}
+              transition={{ duration: 1.1, ease: "easeOut" }}
+              className="h-48 w-48 rounded-full shadow-card ring-4 ring-white"
+              style={{
+                background:
+                  "conic-gradient(#FF5E5B 0deg 45deg, #FFB627 45deg 90deg, #1CA7EC 90deg 135deg, #FF8C8A 135deg 180deg, #FF5E5B 180deg 225deg, #FFB627 225deg 270deg, #1CA7EC 270deg 315deg, #FF8C8A 315deg 360deg)",
+              }}
+              aria-label="Prize wheel"
+            />
+            {/* hub */}
+            <div className="absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-2xl shadow-card">
+              🎡
+            </div>
+          </div>
           <button
             onClick={spin}
             disabled={phase === "spinning"}
@@ -234,10 +254,13 @@ export function SpinView(props: Props) {
             <EvergreenNote borough={borough} setBorough={(b) => { setBorough(b); void loadOptions(quest.id, b); }} />
           )}
 
-          {!optionsLoading &&
-            options?.map((o) => (
-              <OptionCard key={o.id} option={o} onDid={() => setSheet({ activityId: o.id })} disabled={submitting} />
-            ))}
+          {!optionsLoading && options && options.length > 0 && (
+            <LocationDeck
+              options={options}
+              onDid={(activityId) => setSheet({ activityId })}
+              disabled={submitting}
+            />
+          )}
 
           <button
             onClick={() => setSheet({})}
@@ -288,52 +311,6 @@ function QuestCard({ quest }: { quest: QuestTemplate }) {
       <div className="mb-2 text-5xl" aria-hidden>{quest.icon ?? "✨"}</div>
       <h2 className="font-display text-2xl font-extrabold">{quest.title}</h2>
       <p className="mt-1 text-foreground/75">{quest.description}</p>
-    </div>
-  );
-}
-
-function OptionCard({ option, onDid, disabled }: { option: MatchedOption; onDid: () => void; disabled: boolean }) {
-  return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate font-semibold">{option.title}</h3>
-          <p className="truncate text-sm text-foreground/60">
-            {option.location_name ?? option.borough ?? "NYC"}
-            {option.distanceKm != null && ` · ${option.distanceKm.toFixed(1)} km`}
-          </p>
-          {option.start_date && (
-            <p className="text-xs text-foreground/50">{new Date(option.start_date).toLocaleDateString()}</p>
-          )}
-        </div>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <a
-          href={option.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 rounded-full bg-sky/10 py-2 text-center text-sm font-medium text-sky"
-        >
-          Details ↗
-        </a>
-        {option.lat != null && option.lng != null && (
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${option.lat},${option.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-full bg-foreground/5 py-2 text-center text-sm font-medium text-foreground/60"
-          >
-            Map 📍
-          </a>
-        )}
-        <button
-          onClick={onDid}
-          disabled={disabled}
-          className="flex-1 rounded-full bg-coral py-2 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          I did this
-        </button>
-      </div>
     </div>
   );
 }
