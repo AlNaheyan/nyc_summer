@@ -27,7 +27,8 @@ export async function getShareablePost(
 
   const { data, error } = await admin
     .from("feed_posts")
-    .select("id, photo_url, caption, quest_title, location_name, created_at, report_count, moderation_status, author:profiles(display_name)")
+    // Name the FK to disambiguate the embed (PGRST201); see feed/reads.ts.
+    .select("id, photo_url, caption, quest_title, location_name, created_at, report_count, moderation_status, author:profiles!feed_posts_user_id_fkey(display_name)")
     .eq("id", id)
     .maybeSingle();
   if (error || !data) return null;

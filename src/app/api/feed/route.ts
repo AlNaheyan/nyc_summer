@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
     const user = await getUser();
     const page = await getFeedPage(createAdminClient(), cursor, user?.id ?? null);
     return NextResponse.json(page);
-  } catch {
+  } catch (err) {
+    // Degrade to an empty feed rather than a crash, but don't fail silently.
+    console.error("[feed] getFeedPage failed:", err);
     return NextResponse.json({ posts: [], nextCursor: null });
   }
 }

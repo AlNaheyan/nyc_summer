@@ -40,11 +40,13 @@ export async function POST(request: NextRequest) {
     } else {
       fields = fieldsSchema.parse((await request.json().catch(() => ({}))) ?? {});
     }
-  } catch {
+  } catch (err) {
+    console.error("[completions] bad_request:", err);
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
   if (photo && (!ALLOWED_TYPES.includes(photo.type) || photo.size > MAX_BYTES)) {
+    console.error("[completions] invalid_photo:", { type: photo.type, size: photo.size });
     return NextResponse.json({ error: "invalid_photo" }, { status: 400 });
   }
 

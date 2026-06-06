@@ -42,7 +42,9 @@ export async function getFeedPage(
 
   let query = admin
     .from("feed_posts")
-    .select("id, photo_url, caption, quest_title, location_name, created_at, report_count, author:profiles(display_name)")
+    // Disambiguate the embed: feed_posts ↔ profiles has two relationship paths
+    // (direct user_id FK + indirect via feed_reactions), so name the FK (PGRST201).
+    .select("id, photo_url, caption, quest_title, location_name, created_at, report_count, author:profiles!feed_posts_user_id_fkey(display_name)")
     .eq("moderation_status", "allowed")
     .lt("report_count", threshold)
     .order("created_at", { ascending: false })
