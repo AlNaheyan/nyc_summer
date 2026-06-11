@@ -27,7 +27,7 @@ export function LoginButton() {
       <button
         onClick={signIn}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-3 rounded-full bg-white px-6 py-3.5 font-semibold text-foreground shadow-card transition active:scale-[0.98] disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-white bg-white px-6 py-3.5 font-display font-semibold text-foreground shadow-pop transition-transform active:translate-y-1 active:shadow-none disabled:opacity-60"
       >
         <GoogleMark />
         {loading ? "Connecting…" : "Continue with Google"}
