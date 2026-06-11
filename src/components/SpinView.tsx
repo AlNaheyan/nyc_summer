@@ -179,21 +179,25 @@ export function SpinView(props: SpinViewProps) {
 
   return (
     <main className="px-5 pb-8 pt-6">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-foreground/60">Hey {props.displayName} 👋</p>
-          <h1 className="font-display text-2xl font-extrabold text-coral">Today&apos;s Quests</h1>
-          <p className="mt-0.5 text-xs text-foreground/50">
+          <p className="text-sm font-semibold text-foreground/60">Hey {props.displayName} 👋</p>
+          <h1 className="font-display text-2xl font-bold text-coral">Today&apos;s Quests</h1>
+          <p className="mt-0.5 text-xs font-semibold text-foreground/50">
             {completedToday}/{MAX_QUESTS_PER_DAY} done today
           </p>
         </div>
-        <div className="flex gap-3 text-right text-sm">
+        <div className="flex gap-2 text-sm">
           <Stat label="Points" value={points} />
           <Stat label="Streak" value={`${props.currentStreak}🔥`} />
         </div>
       </header>
 
-      {error && <p className="mb-4 rounded-xl bg-coral/10 px-4 py-2 text-sm text-coral">{error}</p>}
+      {error && (
+        <p className="mb-4 rounded-2xl border-2 border-coral/20 bg-coral/10 px-4 py-2 text-sm font-semibold text-coral">
+          {error}
+        </p>
+      )}
 
       {(phase === "idle" || phase === "spinning") && (
         <div className="flex flex-col items-center gap-8 py-10">
@@ -226,7 +230,7 @@ export function SpinView(props: SpinViewProps) {
           <button
             onClick={spin}
             disabled={phase === "spinning"}
-            className="rounded-full bg-coral px-10 py-4 text-lg font-bold text-white shadow-card transition active:scale-[0.97] disabled:opacity-70"
+            className="rounded-full bg-coral px-10 py-4 font-display text-lg font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none disabled:opacity-70"
           >
             {phase === "spinning"
               ? "Spinning…"
@@ -242,8 +246,8 @@ export function SpinView(props: SpinViewProps) {
           <QuestCard quest={quest} />
 
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold">Where to go</h2>
-            <button onClick={reroll} className="text-sm font-medium text-sky underline-offset-2 hover:underline">
+            <h2 className="font-display text-lg font-semibold">Where to go</h2>
+            <button onClick={reroll} className="rounded-full bg-sky/10 px-3 py-1.5 text-sm font-bold text-sky transition hover:bg-sky/20 active:scale-95">
               {freeReroll ? "Re-roll (free)" : `Re-roll (${POINTS.rerollCost} pts)`}
             </button>
           </div>
@@ -265,9 +269,9 @@ export function SpinView(props: SpinViewProps) {
           <button
             onClick={() => setSheet({})}
             disabled={submitting}
-            className="mt-2 rounded-full border-2 border-coral px-6 py-3 font-semibold text-coral transition active:scale-[0.98] disabled:opacity-60"
+            className="mt-2 rounded-full border-[3px] border-coral bg-white px-6 py-3 font-display font-semibold text-coral transition-transform active:scale-[0.97] disabled:opacity-60"
           >
-            I did it (mark done)
+            I did it ✓
           </button>
         </div>
       )}
@@ -298,26 +302,32 @@ export function SpinView(props: SpinViewProps) {
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div>
-      <div className="font-bold">{value}</div>
-      <div className="text-xs text-foreground/50">{label}</div>
+    <div className="rounded-2xl border-2 border-white bg-white px-3 py-1.5 text-center shadow-clay">
+      <div className="font-display font-bold leading-tight text-coral">{value}</div>
+      <div className="text-[10px] font-semibold text-foreground/50">{label}</div>
     </div>
   );
 }
 
 function QuestCard({ quest }: { quest: QuestTemplate }) {
   return (
-    <div className="rounded-card bg-gradient-to-br from-sun-soft to-coral-soft p-6 shadow-card">
-      <div className="mb-2 text-5xl" aria-hidden>{quest.icon ?? "✨"}</div>
-      <h2 className="font-display text-2xl font-extrabold">{quest.title}</h2>
-      <p className="mt-1 text-foreground/75">{quest.description}</p>
+    <div className="relative overflow-hidden rounded-card border-2 border-white bg-gradient-to-br from-sun-soft via-coral-soft to-grape-soft p-6 shadow-clay">
+      {/* playful glossy highlight */}
+      <div aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/30 blur-xl" />
+      <div className="relative">
+        <div className="mb-2 inline-block animate-bounce-soft text-5xl drop-shadow-sm" aria-hidden>
+          {quest.icon ?? "✨"}
+        </div>
+        <h2 className="font-display text-2xl font-bold leading-tight">{quest.title}</h2>
+        <p className="mt-1 font-medium text-foreground/75">{quest.description}</p>
+      </div>
     </div>
   );
 }
 
 function EvergreenNote({ borough, setBorough }: { borough: string; setBorough: (b: string) => void }) {
   return (
-    <div className="rounded-2xl bg-sky-soft/30 p-4 text-sm text-foreground/75">
+    <div className="rounded-2xl border-2 border-white bg-sky-soft/40 p-4 text-sm font-medium text-foreground/75 shadow-clay">
       <p>No scheduled spots matched right now — this one&apos;s evergreen. Just go do it! 🌎</p>
       <label className="mt-3 flex items-center gap-2">
         <span className="text-xs">Try a borough:</span>
@@ -356,10 +366,11 @@ function MarkDoneSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-md rounded-t-card bg-background p-5 pb-8" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-display text-xl font-extrabold">Mark it done</h3>
-        <p className="mt-1 text-sm text-foreground/60">Add a photo to share it (optional).</p>
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-foreground/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md animate-pop-in rounded-t-blob border-t-2 border-white bg-background p-5 pb-8 shadow-clay" onClick={(e) => e.stopPropagation()}>
+        <div aria-hidden className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-foreground/15" />
+        <h3 className="font-display text-xl font-semibold">Mark it done 🎉</h3>
+        <p className="mt-1 text-sm font-medium text-foreground/60">Add a photo to share it (optional).</p>
 
         <label className="mt-4 flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-foreground/20 bg-white/60 text-foreground/50">
           {preview ? (
@@ -394,13 +405,13 @@ function MarkDoneSheet({
         )}
 
         <div className="mt-5 flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-full border border-foreground/20 py-3 font-semibold text-foreground/70">
+          <button onClick={onClose} className="flex-1 rounded-full border-2 border-foreground/15 bg-white py-3 font-display font-semibold text-foreground/70 transition active:scale-[0.97]">
             Cancel
           </button>
           <button
             onClick={() => onSubmit({ photo, caption: caption.trim() || undefined, isPublic })}
             disabled={submitting}
-            className="flex-1 rounded-full bg-coral py-3 font-semibold text-white disabled:opacity-60"
+            className="flex-1 rounded-full bg-coral py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none disabled:opacity-60"
           >
             {submitting ? "Saving…" : "Done!"}
           </button>
@@ -430,15 +441,15 @@ function DoneCard({
   const moreLeft = result ? !result.allDone && result.questsRemaining > 0 : false;
   return (
     <div className="flex flex-col items-center gap-4 py-12 text-center">
-      <div className="text-6xl" aria-hidden>🎉</div>
-      <h2 className="font-display text-2xl font-extrabold text-coral">Quest complete!</h2>
+      <div className="animate-pop-in text-6xl" aria-hidden>🎉</div>
+      <h2 className="font-display text-2xl font-bold text-coral">Quest complete!</h2>
       {result && (
-        <p className="text-foreground/75">
+        <p className="font-semibold text-foreground/75">
           +{result.pointsAwarded} points · {result.streak}-day streak 🔥
         </p>
       )}
       {result && result.newBadges.length > 0 && (
-        <p className="rounded-full bg-sun-soft px-4 py-2 text-sm font-medium">
+        <p className="animate-pop-in rounded-full border-2 border-white bg-gradient-to-br from-sun-soft to-sun/50 px-4 py-2 text-sm font-bold shadow-clay">
           🏅 New badge{result.newBadges.length > 1 ? "s" : ""}: {result.newBadges.join(", ")}
         </p>
       )}
@@ -454,7 +465,7 @@ function DoneCard({
           <p className="text-sm text-foreground/55">
             {result?.questsRemaining} more quest{result && result.questsRemaining > 1 ? "s" : ""} available today!
           </p>
-          <button onClick={onNext} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">
+          <button onClick={onNext} className="rounded-full bg-coral px-8 py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none">
             Spin next quest →
           </button>
           <button onClick={onJournal} className="text-sm font-medium text-foreground/50 underline-offset-2 hover:underline">
@@ -464,7 +475,7 @@ function DoneCard({
       ) : (
         <>
           <p className="text-sm text-foreground/55">That&apos;s all 3 quests today — amazing. See you tomorrow!</p>
-          <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">
+          <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none">
             See my journal
           </button>
         </>
@@ -476,12 +487,12 @@ function DoneCard({
 function AllDoneCard({ onJournal }: { onJournal: () => void }) {
   return (
     <div className="flex flex-col items-center gap-4 py-16 text-center">
-      <div className="text-6xl" aria-hidden>🏆</div>
-      <h2 className="font-display text-2xl font-extrabold text-coral">All done for today!</h2>
-      <p className="max-w-xs text-balance text-foreground/70">
+      <div className="animate-pop-in text-6xl" aria-hidden>🏆</div>
+      <h2 className="font-display text-2xl font-bold text-coral">All done for today!</h2>
+      <p className="max-w-xs text-balance font-medium text-foreground/70">
         You&apos;ve completed all {MAX_QUESTS_PER_DAY} quests today. Come back tomorrow for more.
       </p>
-      <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-semibold text-white shadow-card">
+      <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none">
         See my journal
       </button>
     </div>
@@ -508,7 +519,7 @@ function ShareButton({ feedPostId, questHint }: { feedPostId: string; questHint:
     }
   }
   return (
-    <button onClick={share} className="rounded-full bg-sky px-8 py-3 font-semibold text-white shadow-card">
+    <button onClick={share} className="rounded-full bg-sky px-8 py-3 font-display font-semibold text-white shadow-pop-sky transition-transform active:translate-y-1 active:shadow-none">
       {copied ? "Link copied!" : "↗ Share your card"}
     </button>
   );
