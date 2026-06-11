@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { createAdminClient } from "@/lib/supabase/server";
 
 /**
- * Per-endpoint rate limiting backed by Upstash Redis (durable + shared across
- * serverless instances). Configured via UPSTASH_REDIS_REST_URL / _TOKEN.
+ * Per-endpoint rate limiting backed by Postgres (the check_rate_limit function
+ * from migration 0007). Reuses the existing Supabase service-role connection —
+ * no extra infrastructure.
  *
  * Design choices:
- *   - Fail OPEN. If Upstash isn't configured (local dev) or is unreachable,
- *     requests are allowed — a Redis blip must never take down the app.
+ *   - Fail OPEN. If the DB call errors (or the migration hasn't been applied),
+ *     the request is allowed — rate limiting must never take down the app.
  *   - Authenticated routes key by user.id; the public feed keys by IP.
- *   - Sliding window: smooth, no thundering herd at window boundaries.
+ *   - Fixed window, incremented atomically server-side to avoid races.
  */
 
 type LimiterName = "completions" | "feed" | "options";
@@ -19,39 +19,11 @@ type LimiterName = "completions" | "feed" | "options";
 //   completions — expensive (upload + paid moderation API); also daily-capped.
 //   feed        — public, unauthenticated; keyed by IP, allows normal scroll.
 //   options     — heaviest DB read; keyed by user.
-const CONFIG: Record<LimiterName, { limit: number; window: `${number} ${"s" | "m" | "h"}` }> = {
-  completions: { limit: 10, window: "1 m" },
-  feed: { limit: 60, window: "1 m" },
-  options: { limit: 30, window: "1 m" },
+const CONFIG: Record<LimiterName, { limit: number; windowSeconds: number }> = {
+  completions: { limit: 10, windowSeconds: 60 },
+  feed: { limit: 60, windowSeconds: 60 },
+  options: { limit: 30, windowSeconds: 60 },
 };
-
-let redis: Redis | null = null;
-function getRedis(): Redis | null {
-  if (redis) return redis;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null; // not configured → limiting disabled
-  redis = new Redis({ url, token });
-  return redis;
-}
-
-const limiters = new Map<LimiterName, Ratelimit>();
-function getLimiter(name: LimiterName): Ratelimit | null {
-  const r = getRedis();
-  if (!r) return null;
-  let limiter = limiters.get(name);
-  if (!limiter) {
-    const { limit, window } = CONFIG[name];
-    limiter = new Ratelimit({
-      redis: r,
-      limiter: Ratelimit.slidingWindow(limit, window),
-      prefix: `rl:${name}`,
-      analytics: false,
-    });
-    limiters.set(name, limiter);
-  }
-  return limiter;
-}
 
 export interface RateLimitResult {
   ok: boolean;
@@ -60,19 +32,39 @@ export interface RateLimitResult {
   reset: number; // epoch ms when the window resets
 }
 
+interface CheckRow {
+  allowed: boolean;
+  remaining: number;
+  reset_at: string;
+}
+
 /**
- * Check a request against a named limiter. Returns `ok: true` (allow) when
- * Upstash isn't configured or errors — fail open.
+ * Check a request against a named limiter. Returns `ok: true` (allow) when the
+ * DB call fails — fail open.
  */
 export async function rateLimit(name: LimiterName, key: string): Promise<RateLimitResult> {
-  const limiter = getLimiter(name);
-  if (!limiter) return { ok: true, limit: 0, remaining: 0, reset: 0 };
+  const { limit, windowSeconds } = CONFIG[name];
   try {
-    const { success, limit, remaining, reset } = await limiter.limit(key);
-    return { ok: success, limit, remaining, reset };
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc("check_rate_limit", {
+      p_key: `${name}:${key}`,
+      p_limit: limit,
+      p_window_seconds: windowSeconds,
+    });
+    if (error) throw error;
+
+    const row = (Array.isArray(data) ? data[0] : data) as CheckRow | undefined;
+    if (!row) return { ok: true, limit, remaining: limit, reset: 0 };
+
+    return {
+      ok: row.allowed,
+      limit,
+      remaining: row.remaining,
+      reset: new Date(row.reset_at).getTime(),
+    };
   } catch (err) {
     console.error(`[rate-limit] ${name} check failed, allowing request:`, err);
-    return { ok: true, limit: 0, remaining: 0, reset: 0 };
+    return { ok: true, limit, remaining: limit, reset: 0 };
   }
 }
 
