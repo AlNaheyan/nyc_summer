@@ -35,12 +35,14 @@ export function FeedView() {
 
   return (
     <div className="min-h-dvh lg:min-h-0">
-      <header className="sticky top-0 z-10 border-b border-foreground/10 bg-background/80 px-4 py-3 backdrop-blur lg:rounded-t-card">
-        <h1 className="font-display text-xl font-extrabold">Summer Feed</h1>
+      <header className="sticky top-0 z-10 border-b-2 border-white/60 bg-background/80 px-4 py-3 backdrop-blur lg:rounded-t-card">
+        <h1 className="flex items-center gap-2 font-display text-xl font-semibold">
+          <span aria-hidden>📸</span> Summer Feed
+        </h1>
       </header>
 
       {posts.length === 0 && done && (
-        <p className="m-4 rounded-card bg-white/70 p-8 text-center text-foreground/60">
+        <p className="m-4 rounded-card border-2 border-white bg-white/70 p-8 text-center font-medium text-foreground/60 shadow-clay">
           No posts yet. Complete a quest with a public photo to be first! 📸
         </p>
       )}
@@ -55,7 +57,7 @@ export function FeedView() {
         <button
           onClick={load}
           disabled={loading}
-          className="mx-auto my-5 block rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-coral shadow-sm disabled:opacity-60"
+          className="mx-auto my-5 block rounded-full border-2 border-white bg-white px-6 py-2.5 text-sm font-bold text-coral shadow-clay transition active:scale-95 disabled:opacity-60"
         >
           {loading ? "Loading…" : "Load more"}
         </button>
@@ -138,13 +140,15 @@ function FeedCard({ post }: { post: PublicFeedPost }) {
           </div>
         </div>
 
-        <p className="mt-0.5 truncate text-xs font-medium text-sky">
-          🎯 {post.questTitle}
-          {post.locationName && <span className="text-foreground/45"> · 📍 {post.locationName}</span>}
+        <p className="mt-1">
+          <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-sky/10 px-2.5 py-1 text-xs font-bold text-sky">
+            🎯 {post.questTitle}
+            {post.locationName && <span className="truncate font-semibold text-sky/70"> · 📍 {post.locationName}</span>}
+          </span>
         </p>
 
         {post.caption && (
-          <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-snug text-foreground/90">{post.caption}</p>
+          <p className="mt-1.5 whitespace-pre-wrap text-[15px] font-medium leading-snug text-foreground/90">{post.caption}</p>
         )}
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -152,23 +156,23 @@ function FeedCard({ post }: { post: PublicFeedPost }) {
           src={post.photoUrl}
           alt={post.questTitle}
           loading="lazy"
-          className="mt-2.5 aspect-square w-full rounded-2xl border border-foreground/10 object-cover"
+          className="mt-2.5 aspect-square w-full rounded-card border-2 border-white object-cover shadow-clay"
         />
 
         <div className="mt-2 flex items-center gap-1 text-foreground/50">
           <button
             onClick={toggleReaction}
             aria-pressed={reacted}
-            className={`group flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition ${
+            className={`group flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-bold transition active:scale-90 ${
               reacted ? "bg-coral/15 text-coral" : "hover:bg-coral/10 hover:text-coral"
             }`}
           >
-            <span aria-hidden>👍</span>
+            <span className={reacted ? "inline-block animate-wiggle" : "inline-block"} aria-hidden>👍</span>
             <span className="min-w-3 text-left">{reactionCount > 0 ? reactionCount : ""}</span>
           </button>
           <button
             onClick={share}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm transition hover:bg-sky/10 hover:text-sky"
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-bold transition hover:bg-sky/10 hover:text-sky active:scale-90"
           >
             <span aria-hidden>↗</span> Share
           </button>

@@ -98,7 +98,7 @@ function PreviewCard({
       onFocus={onHover}
       style={style}
       aria-label={`Open ${option.title}`}
-      className="absolute bottom-0  block w-[46%] overflow-hidden rounded-card bg-white text-left shadow-card transition-transform duration-200 ease-out will-change-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+      className="absolute bottom-0 block w-[46%] overflow-hidden rounded-card border-2 border-white bg-white text-left shadow-clay transition-transform duration-200 ease-out will-change-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
     >
       <div className="relative h-20 bg-gradient-to-br from-sky-soft via-sky/40 to-sun-soft">
         {mapUrl ? (
@@ -168,7 +168,7 @@ function LocationModal({
       aria-label={option.title}
     >
       <div
-        className="w-full max-w-sm overflow-hidden rounded-card bg-white shadow-card"
+        className="w-full max-w-sm animate-pop-in overflow-hidden rounded-card border-2 border-white bg-white shadow-clay"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative h-44 bg-gradient-to-br from-sky-soft via-sky/40 to-sun-soft">
@@ -205,13 +205,13 @@ function LocationModal({
         </div>
 
         <div className="p-5">
-          <h3 className="font-display text-xl font-extrabold leading-tight">{option.title}</h3>
-          <p className="mt-1 text-sm text-foreground/65">{place}</p>
+          <h3 className="font-display text-xl font-semibold leading-tight">{option.title}</h3>
+          <p className="mt-1 text-sm font-medium text-foreground/65">{place}</p>
           {option.address && <p className="text-xs text-foreground/50">{option.address}</p>}
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-foreground/70">
-            <span className="rounded-full bg-foreground/5 px-3 py-1">{formatWhen(option)}</span>
-            {distance && <span className="rounded-full bg-foreground/5 px-3 py-1">📍 {distance}</span>}
-            {option.borough && <span className="rounded-full bg-foreground/5 px-3 py-1">{option.borough}</span>}
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-foreground/70">
+            <span className="rounded-full bg-sun-soft/50 px-3 py-1">{formatWhen(option)}</span>
+            {distance && <span className="rounded-full bg-sky-soft/40 px-3 py-1">📍 {distance}</span>}
+            {option.borough && <span className="rounded-full bg-grape-soft/40 px-3 py-1">{option.borough}</span>}
           </div>
 
           <div className="mt-5 flex gap-2">
@@ -219,14 +219,14 @@ function LocationModal({
               href={option.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-full bg-foreground/10 py-3 text-center text-sm font-bold text-foreground/70 transition hover:bg-foreground/15"
+              className="flex-1 rounded-full border-2 border-foreground/15 bg-white py-3 text-center text-sm font-bold text-foreground/70 transition hover:bg-foreground/5 active:scale-[0.97]"
             >
               Details ↗
             </a>
             <button
               onClick={onDid}
               disabled={disabled}
-              className="flex-1 rounded-full bg-coral py-3 text-center text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-60"
+              className="flex-1 rounded-full bg-coral py-3 text-center font-display text-sm font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none disabled:opacity-60"
             >
               I did this ✓
             </button>
