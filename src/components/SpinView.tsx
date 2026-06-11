@@ -3,9 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import {
+  Sun,
+  Flame,
+  RotateCw,
+  Camera,
+  Check,
+  Share2,
+  ArrowRight,
+  Trophy,
+  Sparkles,
+} from "lucide-react";
 import type { QuestTemplate } from "@/lib/types";
 import type { MatchedOption } from "@/lib/matcher";
 import { LocationDeck } from "@/components/LocationDeck";
+import { Button } from "@/components/ui/button";
 import { BOROUGHS } from "@/lib/geo/borough";
 import { POINTS } from "@/lib/gamification/points";
 import { MAX_QUESTS_PER_DAY } from "@/lib/quests/day-rules";
@@ -179,100 +191,109 @@ export function SpinView(props: SpinViewProps) {
 
   return (
     <main className="px-5 pb-8 pt-6">
-      <header className="mb-6 flex items-center justify-between gap-3">
+      <header className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground/60">Hey {props.displayName} 👋</p>
-          <h1 className="font-display text-2xl font-bold text-coral">Today&apos;s Quests</h1>
-          <p className="mt-0.5 text-xs font-semibold text-foreground/50">
-            {completedToday}/{MAX_QUESTS_PER_DAY} done today
+          <p className="eyebrow text-muted-foreground">Hello, {props.displayName}</p>
+          <h1 className="font-display text-[1.7rem] font-semibold leading-none tracking-tight">
+            Today&apos;s quests
+          </h1>
+          <p className="mt-1.5 text-xs font-medium text-muted-foreground">
+            {completedToday} of {MAX_QUESTS_PER_DAY} done today
           </p>
         </div>
-        <div className="flex gap-2 text-sm">
+        <div className="flex gap-2">
           <Stat label="Points" value={points} />
-          <Stat label="Streak" value={`${props.currentStreak}🔥`} />
+          <Stat
+            label="Streak"
+            value={
+              <span className="inline-flex items-center gap-1">
+                {props.currentStreak}
+                <Flame className="h-3.5 w-3.5 text-primary" />
+              </span>
+            }
+          />
         </div>
       </header>
 
       {error && (
-        <p className="mb-4 rounded-2xl border-2 border-coral/20 bg-coral/10 px-4 py-2 text-sm font-semibold text-coral">
+        <p className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive">
           {error}
         </p>
       )}
 
       {(phase === "idle" || phase === "spinning") && (
-        <div className="flex flex-col items-center gap-8 py-10">
-          <div className="relative h-48 w-48">
-            {/* pointer */}
-            <div
-              className="absolute left-1/2 top-[-6px] z-10 h-0 w-0 -translate-x-1/2"
-              style={{
-                borderLeft: "11px solid transparent",
-                borderRight: "11px solid transparent",
-                borderTop: "18px solid #2a1a12",
-              }}
-              aria-hidden
-            />
-            <motion.div
-              animate={phase === "spinning" && !reduce ? { rotate: 360 * 4 + 90 } : { rotate: 0 }}
-              transition={{ duration: 1.1, ease: "easeOut" }}
-              className="h-48 w-48 rounded-full shadow-card ring-4 ring-white"
-              style={{
-                background:
-                  "conic-gradient(#FF5E5B 0deg 45deg, #FFB627 45deg 90deg, #1CA7EC 90deg 135deg, #FF8C8A 135deg 180deg, #FF5E5B 180deg 225deg, #FFB627 225deg 270deg, #1CA7EC 270deg 315deg, #FF8C8A 315deg 360deg)",
-              }}
-              aria-label="Prize wheel"
-            />
-            {/* hub */}
-            <div className="absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-2xl shadow-card">
-              🎡
-            </div>
-          </div>
-          <button
+        <div className="flex flex-col items-center gap-9 py-10 animate-rise-in">
+          <SunDial spinning={phase === "spinning"} reduce={!!reduce} />
+          <Button
             onClick={spin}
             disabled={phase === "spinning"}
-            className="rounded-full bg-coral px-10 py-4 font-display text-lg font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none disabled:opacity-70"
+            size="lg"
+            className="rounded-full px-9"
           >
-            {phase === "spinning"
-              ? "Spinning…"
-              : completedToday > 0
-                ? "Spin your next quest"
-                : "Spin the wheel"}
-          </button>
+            {phase === "spinning" ? (
+              "Spinning…"
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                {completedToday > 0 ? "Spin your next quest" : "Spin the wheel"}
+              </>
+            )}
+          </Button>
         </div>
       )}
 
       {phase === "quest" && quest && (
-        <div className="flex flex-col gap-5">
-          <QuestCard quest={quest} />
+        <div className="flex flex-col gap-6 animate-rise-in">
+          <QuestCard quest={quest} index={completedToday + 1} />
 
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Where to go</h2>
-            <button onClick={reroll} className="rounded-full bg-sky/10 px-3 py-1.5 text-sm font-bold text-sky transition hover:bg-sky/20 active:scale-95">
-              {freeReroll ? "Re-roll (free)" : `Re-roll (${POINTS.rerollCost} pts)`}
-            </button>
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="eyebrow text-muted-foreground">Where to go</h2>
+              <Button
+                onClick={reroll}
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+                {freeReroll ? "Re-roll" : `Re-roll · ${POINTS.rerollCost}pt`}
+              </Button>
+            </div>
+
+            <div className="mt-3">
+              {optionsLoading && (
+                <p className="text-sm text-muted-foreground">Finding spots near you…</p>
+              )}
+
+              {!optionsLoading && options && options.length === 0 && (
+                <EvergreenNote
+                  borough={borough}
+                  setBorough={(b) => {
+                    setBorough(b);
+                    void loadOptions(quest.id, b);
+                  }}
+                />
+              )}
+
+              {!optionsLoading && options && options.length > 0 && (
+                <LocationDeck
+                  options={options}
+                  onDid={(activityId) => setSheet({ activityId })}
+                  disabled={submitting}
+                />
+              )}
+            </div>
           </div>
 
-          {optionsLoading && <p className="text-sm text-foreground/55">Finding spots near you…</p>}
-
-          {!optionsLoading && options && options.length === 0 && (
-            <EvergreenNote borough={borough} setBorough={(b) => { setBorough(b); void loadOptions(quest.id, b); }} />
-          )}
-
-          {!optionsLoading && options && options.length > 0 && (
-            <LocationDeck
-              options={options}
-              onDid={(activityId) => setSheet({ activityId })}
-              disabled={submitting}
-            />
-          )}
-
-          <button
+          <Button
             onClick={() => setSheet({})}
             disabled={submitting}
-            className="mt-2 rounded-full border-[3px] border-coral bg-white px-6 py-3 font-display font-semibold text-coral transition-transform active:scale-[0.97] disabled:opacity-60"
+            variant="outline"
+            className="rounded-full border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
           >
-            I did it ✓
-          </button>
+            <Check className="h-4 w-4" />
+            I did it
+          </Button>
         </div>
       )}
 
@@ -300,45 +321,111 @@ export function SpinView(props: SpinViewProps) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border-2 border-white bg-white px-3 py-1.5 text-center shadow-clay">
-      <div className="font-display font-bold leading-tight text-coral">{value}</div>
-      <div className="text-[10px] font-semibold text-foreground/50">{label}</div>
+    <div className="min-w-[3.5rem] rounded-md border border-border bg-card px-3 py-1.5 text-center">
+      <div className="font-display text-lg font-semibold leading-none text-foreground">{value}</div>
+      <div className="eyebrow mt-1 text-[0.5625rem] text-muted-foreground">{label}</div>
     </div>
   );
 }
 
-function QuestCard({ quest }: { quest: QuestTemplate }) {
+/** A sun-faded medallion dial that spins to reveal the quest. */
+function SunDial({ spinning, reduce }: { spinning: boolean; reduce: boolean }) {
   return (
-    <div className="relative overflow-hidden rounded-card border-2 border-white bg-gradient-to-br from-sun-soft via-coral-soft to-grape-soft p-6 shadow-clay">
-      {/* playful glossy highlight */}
-      <div aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/30 blur-xl" />
-      <div className="relative">
-        <div className="mb-2 inline-block animate-bounce-soft text-5xl drop-shadow-sm" aria-hidden>
-          {quest.icon ?? "✨"}
+    <div className="relative h-52 w-52">
+      {/* pointer */}
+      <div
+        aria-hidden
+        className="absolute left-1/2 top-[-2px] z-20 h-0 w-0 -translate-x-1/2"
+        style={{
+          borderLeft: "9px solid transparent",
+          borderRight: "9px solid transparent",
+          borderTop: "15px solid hsl(var(--terracotta))",
+        }}
+      />
+      <motion.div
+        animate={spinning && !reduce ? { rotate: 360 * 4 + 90 } : { rotate: 0 }}
+        transition={{ duration: 1.1, ease: "easeOut" }}
+        className="h-52 w-52 rounded-full p-[6px] shadow-paper ring-1 ring-border"
+        style={{
+          background:
+            "conic-gradient(hsl(16 55% 52%) 0deg 60deg, hsl(38 60% 56%) 60deg 120deg, hsl(174 26% 44%) 120deg 180deg, hsl(40 46% 86%) 180deg 240deg, hsl(16 55% 52%) 240deg 300deg, hsl(38 60% 56%) 300deg 360deg)",
+        }}
+        aria-label="Prize wheel"
+      >
+        {/* inner paper face with tick ring */}
+        <div
+          className="grid h-full w-full place-items-center rounded-full bg-card"
+          style={{
+            backgroundImage:
+              "repeating-conic-gradient(hsl(var(--border)) 0deg 0.6deg, transparent 0.6deg 30deg)",
+          }}
+        >
+          <div className="grid h-[58%] w-[58%] place-items-center rounded-full border border-border bg-card text-primary shadow-paper">
+            <Sun className="h-9 w-9" strokeWidth={1.5} aria-hidden />
+          </div>
         </div>
-        <h2 className="font-display text-2xl font-bold leading-tight">{quest.title}</h2>
-        <p className="mt-1 font-medium text-foreground/75">{quest.description}</p>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
-function EvergreenNote({ borough, setBorough }: { borough: string; setBorough: (b: string) => void }) {
+function QuestCard({ quest, index }: { quest: QuestTemplate; index: number }) {
   return (
-    <div className="rounded-2xl border-2 border-white bg-sky-soft/40 p-4 text-sm font-medium text-foreground/75 shadow-clay">
-      <p>No scheduled spots matched right now — this one&apos;s evergreen. Just go do it! 🌎</p>
+    <article className="relative overflow-hidden rounded-lg border border-border bg-card p-6 shadow-paper">
+      {/* faint sun wash, top-right */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full"
+        style={{ background: "radial-gradient(circle, hsl(38 70% 58% / 0.22), transparent 70%)" }}
+      />
+      <div className="relative">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="eyebrow text-primary">Quest no. {String(index).padStart(2, "0")}</span>
+          <span className="h-px flex-1 bg-border" />
+          <span
+            className="grid h-10 w-10 place-items-center rounded-full bg-gold-soft text-xl ring-1 ring-border"
+            aria-hidden
+          >
+            {quest.icon ?? "✨"}
+          </span>
+        </div>
+        <h2 className="font-display text-[1.9rem] font-semibold leading-[1.08] tracking-tight">
+          {quest.title}
+        </h2>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-muted-foreground">
+          {quest.description}
+        </p>
+      </div>
+    </article>
+  );
+}
+
+function EvergreenNote({
+  borough,
+  setBorough,
+}: {
+  borough: string;
+  setBorough: (b: string) => void;
+}) {
+  return (
+    <div className="rounded-md border border-border bg-teal-soft/40 p-4 text-sm text-foreground/80">
+      <p className="font-medium">
+        No scheduled spots matched right now — this one&apos;s evergreen. Just go do it.
+      </p>
       <label className="mt-3 flex items-center gap-2">
-        <span className="text-xs">Try a borough:</span>
+        <span className="text-xs text-muted-foreground">Try a borough</span>
         <select
           value={borough}
           onChange={(e) => setBorough(e.target.value)}
-          className="rounded-lg border border-foreground/15 bg-white px-2 py-1 text-sm"
+          className="rounded-md border border-input bg-card px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">—</option>
           {BOROUGHS.map((b) => (
-            <option key={b} value={b}>{b}</option>
+            <option key={b} value={b}>
+              {b}
+            </option>
           ))}
         </select>
       </label>
@@ -366,18 +453,26 @@ function MarkDoneSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-foreground/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md animate-pop-in rounded-t-blob border-t-2 border-white bg-background p-5 pb-8 shadow-clay" onClick={(e) => e.stopPropagation()}>
-        <div aria-hidden className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-foreground/15" />
-        <h3 className="font-display text-xl font-semibold">Mark it done 🎉</h3>
-        <p className="mt-1 text-sm font-medium text-foreground/60">Add a photo to share it (optional).</p>
+    <div
+      className="fixed inset-0 z-30 flex items-end justify-center bg-ink/45 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md animate-rise-in rounded-t-2xl border-t border-border bg-card p-5 pb-8 shadow-lift"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-foreground/15" />
+        <h3 className="font-display text-xl font-semibold tracking-tight">Mark it done</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Add a photo to share it (optional).</p>
 
-        <label className="mt-4 flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-foreground/20 bg-white/60 text-foreground/50">
+        <label className="mt-4 flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-foreground/25 bg-background/60 text-muted-foreground transition hover:border-primary/40">
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="" className="h-full w-full object-cover" />
           ) : (
-            <span className="text-sm">📷 Tap to add a photo</span>
+            <span className="flex items-center gap-2 text-sm">
+              <Camera className="h-4 w-4" /> Tap to add a photo
+            </span>
           )}
           <input
             type="file"
@@ -393,28 +488,33 @@ function MarkDoneSheet({
           onChange={(e) => setCaption(e.target.value)}
           maxLength={280}
           placeholder="Say something (optional)…"
-          className="mt-3 w-full rounded-2xl border border-foreground/15 bg-white px-4 py-3 text-sm outline-none focus:border-coral"
+          className="mt-3 w-full rounded-lg border border-input bg-card px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-ring"
           rows={2}
         />
 
         {photo && (
-          <label className="mt-3 flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3 text-sm">
-            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="h-5 w-5 accent-coral" />
+          <label className="mt-3 flex items-center gap-3 rounded-lg border border-border bg-background/60 px-4 py-3 text-sm">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
             <span>Post to the public feed (after moderation)</span>
           </label>
         )}
 
         <div className="mt-5 flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-full border-2 border-foreground/15 bg-white py-3 font-display font-semibold text-foreground/70 transition active:scale-[0.97]">
+          <Button onClick={onClose} variant="outline" className="flex-1 rounded-full">
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => onSubmit({ photo, caption: caption.trim() || undefined, isPublic })}
             disabled={submitting}
-            className="flex-1 rounded-full bg-coral py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none disabled:opacity-60"
+            className="flex-1 rounded-full"
           >
-            {submitting ? "Saving…" : "Done!"}
-          </button>
+            {submitting ? "Saving…" : "Done"}
+          </Button>
         </div>
       </div>
     </div>
@@ -422,10 +522,10 @@ function MarkDoneSheet({
 }
 
 const FEED_MESSAGE: Record<DoneResult["feedStatus"], string | null> = {
-  allowed: "📸 Your photo is live on the feed!",
-  held: "📸 Your photo is in review and will appear once approved.",
+  allowed: "Your photo is live on the feed.",
+  held: "Your photo is in review and will appear once approved.",
   blocked: "Your photo couldn't be posted (failed moderation), but the quest still counts.",
-  rate_limited: "You've hit today's post limit — quest still counts!",
+  rate_limited: "You've hit today's post limit — quest still counts.",
   none: null,
 };
 
@@ -440,21 +540,30 @@ function DoneCard({
 }) {
   const moreLeft = result ? !result.allDone && result.questsRemaining > 0 : false;
   return (
-    <div className="flex flex-col items-center gap-4 py-12 text-center">
-      <div className="animate-pop-in text-6xl" aria-hidden>🎉</div>
-      <h2 className="font-display text-2xl font-bold text-coral">Quest complete!</h2>
+    <div className="flex flex-col items-center gap-4 py-12 text-center animate-rise-in">
+      <span className="grid h-16 w-16 place-items-center rounded-full bg-gold-soft text-primary ring-1 ring-border animate-scale-in">
+        <Check className="h-8 w-8" strokeWidth={2.5} />
+      </span>
+      <h2 className="font-display text-2xl font-semibold tracking-tight">Quest complete</h2>
       {result && (
-        <p className="font-semibold text-foreground/75">
-          +{result.pointsAwarded} points · {result.streak}-day streak 🔥
+        <p className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+          +{result.pointsAwarded} points
+          <span className="text-border">·</span>
+          <span className="inline-flex items-center gap-1">
+            {result.streak}-day streak <Flame className="h-3.5 w-3.5 text-primary" />
+          </span>
         </p>
       )}
       {result && result.newBadges.length > 0 && (
-        <p className="animate-pop-in rounded-full border-2 border-white bg-gradient-to-br from-sun-soft to-sun/50 px-4 py-2 text-sm font-bold shadow-clay">
-          🏅 New badge{result.newBadges.length > 1 ? "s" : ""}: {result.newBadges.join(", ")}
+        <p className="inline-flex items-center gap-2 rounded-full border border-border bg-gold-soft px-4 py-1.5 text-sm font-semibold animate-scale-in">
+          <Trophy className="h-4 w-4 text-primary" /> New badge
+          {result.newBadges.length > 1 ? "s" : ""}: {result.newBadges.join(", ")}
         </p>
       )}
       {result && FEED_MESSAGE[result.feedStatus] && (
-        <p className="max-w-xs text-balance text-sm text-foreground/65">{FEED_MESSAGE[result.feedStatus]}</p>
+        <p className="max-w-xs text-balance text-sm text-muted-foreground">
+          {FEED_MESSAGE[result.feedStatus]}
+        </p>
       )}
       {result?.feedStatus === "allowed" && result.feedPostId && (
         <ShareButton feedPostId={result.feedPostId} questHint="my summer quest" />
@@ -462,22 +571,28 @@ function DoneCard({
 
       {moreLeft ? (
         <>
-          <p className="text-sm text-foreground/55">
-            {result?.questsRemaining} more quest{result && result.questsRemaining > 1 ? "s" : ""} available today!
+          <p className="text-sm text-muted-foreground">
+            {result?.questsRemaining} more quest
+            {result && result.questsRemaining > 1 ? "s" : ""} available today
           </p>
-          <button onClick={onNext} className="rounded-full bg-coral px-8 py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none">
-            Spin next quest →
-          </button>
-          <button onClick={onJournal} className="text-sm font-medium text-foreground/50 underline-offset-2 hover:underline">
+          <Button onClick={onNext} className="rounded-full px-8">
+            Spin next quest <ArrowRight className="h-4 w-4" />
+          </Button>
+          <button
+            onClick={onJournal}
+            className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline"
+          >
             See my journal
           </button>
         </>
       ) : (
         <>
-          <p className="text-sm text-foreground/55">That&apos;s all 3 quests today — amazing. See you tomorrow!</p>
-          <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none">
+          <p className="text-sm text-muted-foreground">
+            That&apos;s all {MAX_QUESTS_PER_DAY} quests today — wonderful. See you tomorrow.
+          </p>
+          <Button onClick={onJournal} className="rounded-full px-8">
             See my journal
-          </button>
+          </Button>
         </>
       )}
     </div>
@@ -486,15 +601,17 @@ function DoneCard({
 
 function AllDoneCard({ onJournal }: { onJournal: () => void }) {
   return (
-    <div className="flex flex-col items-center gap-4 py-16 text-center">
-      <div className="animate-pop-in text-6xl" aria-hidden>🏆</div>
-      <h2 className="font-display text-2xl font-bold text-coral">All done for today!</h2>
-      <p className="max-w-xs text-balance font-medium text-foreground/70">
+    <div className="flex flex-col items-center gap-4 py-16 text-center animate-rise-in">
+      <span className="grid h-16 w-16 place-items-center rounded-full bg-gold-soft text-primary ring-1 ring-border animate-scale-in">
+        <Trophy className="h-8 w-8" strokeWidth={1.75} />
+      </span>
+      <h2 className="font-display text-2xl font-semibold tracking-tight">All done for today</h2>
+      <p className="max-w-xs text-balance text-muted-foreground">
         You&apos;ve completed all {MAX_QUESTS_PER_DAY} quests today. Come back tomorrow for more.
       </p>
-      <button onClick={onJournal} className="rounded-full bg-coral px-8 py-3 font-display font-semibold text-white shadow-pop-coral transition-transform active:translate-y-1 active:shadow-none">
+      <Button onClick={onJournal} className="rounded-full px-8">
         See my journal
-      </button>
+      </Button>
     </div>
   );
 }
@@ -519,9 +636,10 @@ function ShareButton({ feedPostId, questHint }: { feedPostId: string; questHint:
     }
   }
   return (
-    <button onClick={share} className="rounded-full bg-sky px-8 py-3 font-display font-semibold text-white shadow-pop-sky transition-transform active:translate-y-1 active:shadow-none">
-      {copied ? "Link copied!" : "↗ Share your card"}
-    </button>
+    <Button onClick={share} variant="teal" className="rounded-full px-8">
+      <Share2 className="h-4 w-4" />
+      {copied ? "Link copied" : "Share your card"}
+    </Button>
   );
 }
 
