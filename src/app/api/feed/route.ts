@@ -1,11 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUser } from "@/lib/auth";
+import { rateLimit, rateLimitResponse, clientIp } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getFeedPage } from "@/lib/feed/reads";
 
 // Public read (TECH_SPEC §8). Auth is optional — only used to mark the viewer's
 // own reactions.
 export async function GET(request: NextRequest) {
+  // Only unauthenticated endpoint — cap by IP to deter scraping.
+  const rl = await rateLimit("feed", clientIp(request));
+  if (!rl.ok) return rateLimitResponse(rl);
+
   const cursor = new URL(request.url).searchParams.get("cursor");
   try {
     const user = await getUser();

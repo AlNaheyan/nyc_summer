@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { getTemplate } from "@/lib/quests/templates";
 import { findOptions } from "@/lib/matcher";
@@ -15,6 +16,10 @@ const querySchema = z.object({
 export async function GET(request: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  // Heaviest DB read (activity matcher) — cap per user.
+  const rl = await rateLimit("options", user.id);
+  if (!rl.ok) return rateLimitResponse(rl);
 
   const parsed = querySchema.safeParse(
     Object.fromEntries(new URL(request.url).searchParams),

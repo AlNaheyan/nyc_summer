@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/server";
 import { recordCompletion } from "@/lib/completions/service";
 import { uploadQuestPhoto, publishCompletionPhoto, type PublishStatus } from "@/lib/feed/service";
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest) {
 
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  // Expensive path (upload + paid moderation API) — cap per user.
+  const rl = await rateLimit("completions", user.id);
+  if (!rl.ok) return rateLimitResponse(rl);
 
   // Parse JSON or multipart (with optional photo).
   let fields: z.infer<typeof fieldsSchema>;
