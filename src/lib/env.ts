@@ -10,11 +10,26 @@ const publicSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
 });
 
-export const publicEnv = publicSchema.parse({
+const publicParsed = publicSchema.safeParse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 });
+
+if (!publicParsed.success) {
+  // Surface a clear, named error instead of Next's opaque "Failed to collect
+  // page data". Each line names the offending var (missing or not a valid URL).
+  const details = publicParsed.error.issues
+    .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
+    .join("\n");
+  throw new Error(
+    `Invalid or missing public environment variables:\n${details}\n` +
+      `Set them in your host (Vercel → Settings → Environment Variables, scope: ` +
+      `Production) and trigger a fresh build. NEXT_PUBLIC_APP_URL must include https://.`,
+  );
+}
+
+export const publicEnv = publicParsed.data;
 
 /**
  * Server-only env. NEVER import this from a client component.
