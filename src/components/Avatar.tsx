@@ -4,12 +4,22 @@ interface Props {
   size?: number;
 }
 
+// Warm, on-brand fallback tints (terracotta · teal · ochre · brick · olive · ink).
+const AVATAR_TINTS = [
+  "hsl(16 55% 50%)",
+  "hsl(174 30% 38%)",
+  "hsl(38 62% 46%)",
+  "hsl(4 55% 50%)",
+  "hsl(150 22% 38%)",
+  "hsl(28 30% 30%)",
+];
+
 /** Round avatar: shows the photo when available, else a colored initial. */
 export function Avatar({ name, url, size = 44 }: Props) {
   const initial = name?.trim()?.[0]?.toUpperCase() ?? "?";
   let sum = 0;
   for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i);
-  const hue = sum % 360;
+  const tint = AVATAR_TINTS[sum % AVATAR_TINTS.length];
 
   if (url) {
     return (
@@ -30,7 +40,7 @@ export function Avatar({ name, url, size = 44 }: Props) {
         width: size,
         height: size,
         fontSize: Math.round(size * 0.42),
-        background: `hsl(${hue} 62% 52%)`,
+        background: tint,
       }}
     >
       {initial}
