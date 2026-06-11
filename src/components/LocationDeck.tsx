@@ -32,7 +32,7 @@ export function LocationDeck({ options, onDid, disabled }: Props) {
   return (
     <>
       <div
-        className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 pt-1 select-none"
+        className="no-scrollbar -mx-5 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 pb-3 pt-1 select-none"
         role="list"
       >
         {options.map((option, i) => (
