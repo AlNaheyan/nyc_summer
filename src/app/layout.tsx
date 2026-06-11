@@ -1,20 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Nunito } from "next/font/google";
+import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 
-// Playful summer identity (TECH_SPEC §9): Fredoka is a chunky, rounded display
-// face for quest titles and headings; Nunito is its friendly, soft-cornered
-// body companion. Consumers read the CSS variables, never the imports.
-const display = Fredoka({
+// Sun-bleached editorial identity: Fraunces is a warm, high-contrast optical
+// serif for headlines + quest titles (italics for editorial flourish); Hanken
+// Grotesk is a clean humanist grotesque for body + UI. Consumers read the CSS
+// variables, never the imports.
+const display = Fraunces({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700", "900"],
+  style: ["normal", "italic"],
   display: "swap",
 });
-const body = Nunito({
+const body = Hanken_Grotesk({
   subsets: ["latin"],
   variable: "--font-body",
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FF5E5B",
+  themeColor: "#C2562E",
   width: "device-width",
   initialScale: 1,
 };
@@ -34,7 +36,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} font-sans antialiased`}>
+      <body className={`${display.variable} ${body.variable} grain font-sans antialiased`}>
         {children}
       </body>
     </html>

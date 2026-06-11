@@ -2,26 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #fff6ea; /* warm cream */
-  --foreground: #3a2418; /* warm espresso */
-}
+@layer base {
+  :root {
+    /* Sun-bleached editorial palette (HSL triplets for shadcn vars). */
+    --paper: 39 44% 92%;
+    --ink: 28 22% 13%;
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  /* Soft sunlit wash so the whole app feels warm and playful. */
-  background-image:
-    radial-gradient(60rem 60rem at 110% -10%, rgba(255, 182, 39, 0.22), transparent 60%),
-    radial-gradient(48rem 48rem at -10% 0%, rgba(255, 140, 138, 0.20), transparent 55%),
-    radial-gradient(52rem 52rem at 50% 120%, rgba(127, 212, 245, 0.20), transparent 60%);
-  background-attachment: fixed;
+    --background: 39 44% 92%;
+    --foreground: 28 22% 13%;
+
+    --card: 40 50% 96%;
+    --card-foreground: 28 22% 13%;
+    --popover: 40 52% 97%;
+    --popover-foreground: 28 22% 13%;
+
+    --primary: 16 62% 47%; /* terracotta sun */
+    --primary-foreground: 40 60% 97%;
+    --secondary: 36 34% 88%;
+    --secondary-foreground: 28 28% 22%;
+    --muted: 36 28% 88%;
+    --muted-foreground: 30 12% 40%;
+    --accent: 36 36% 86%;
+    --accent-foreground: 28 28% 22%;
+    --destructive: 4 62% 48%;
+    --destructive-foreground: 40 60% 97%;
+
+    --border: 33 24% 82%;
+    --input: 33 24% 80%;
+    --ring: 16 62% 47%;
+    --radius: 0.5rem;
+
+    /* Brand accents */
+    --terracotta: 16 62% 47%;
+    --terracotta-soft: 18 70% 90%;
+    --teal: 174 32% 37%; /* faded harbor */
+    --teal-soft: 174 28% 88%;
+    --gold: 38 68% 50%; /* ochre sun */
+    --gold-soft: 40 78% 88%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv05";
+    /* Warm, low-noon light wash so the paper feels sun-faded. */
+    background-image:
+      radial-gradient(48rem 38rem at 108% -8%, hsl(38 70% 60% / 0.16), transparent 60%),
+      radial-gradient(40rem 36rem at -10% 4%, hsl(16 62% 55% / 0.1), transparent 58%),
+      radial-gradient(44rem 40rem at 50% 116%, hsl(174 32% 45% / 0.1), transparent 62%);
+    background-attachment: fixed;
+  }
+
+  /* Optical-serif headlines sit tighter and a touch heavier. */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.012em;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
   /* Hide the scrollbar on horizontal card carousels (still scrollable). */
   .no-scrollbar {
     -ms-overflow-style: none;
@@ -30,18 +80,29 @@ body {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  /* Floating decorative blob used as ambient page candy. */
-  .blob {
+
+  /* Editorial eyebrow: small, tracked-out, uppercase label. */
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 600;
+    font-size: 0.6875rem;
+  }
+
+  /* Fine printed-paper grain layered over the whole app. */
+  .grain::before {
+    content: "";
     position: fixed;
-    border-radius: 9999px;
-    filter: blur(6px);
-    opacity: 0.5;
-    pointer-events: none;
+    inset: 0;
     z-index: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
 
-/* Respect reduced-motion globally (the wheel opts in to motion). */
+/* Respect reduced-motion globally. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -49,8 +110,5 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
-  }
-  .blob {
-    animation: none !important;
   }
 }
