@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export function LoginButton() {
   const [loading, setLoading] = useState(false);
@@ -24,15 +25,16 @@ export function LoginButton() {
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <button
+      <Button
         onClick={signIn}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-white bg-white px-6 py-3.5 font-display font-semibold text-foreground shadow-pop transition-transform active:translate-y-1 active:shadow-none disabled:opacity-60"
+        variant="outline"
+        className="h-12 w-full gap-3 rounded-full bg-card text-base shadow-paper"
       >
         <GoogleMark />
         {loading ? "Connecting…" : "Continue with Google"}
-      </button>
-      {error && <p className="text-sm text-coral">{error}</p>}
+      </Button>
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Sun } from "lucide-react";
 import { getUser } from "@/lib/auth";
 import { LoginButton } from "./login-button";
 
@@ -7,25 +8,26 @@ export default async function LoginPage() {
   if (await getUser()) redirect("/spin");
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-8 overflow-hidden bg-gradient-to-b from-sun-soft via-background to-sky-soft px-6">
-      {/* Floating candy blobs */}
-      <div aria-hidden className="blob left-[-3rem] top-16 h-48 w-48 animate-float bg-coral-soft" />
-      <div aria-hidden className="blob right-[-4rem] top-1/4 h-60 w-60 animate-float bg-grape-soft [animation-delay:2s]" />
-      <div aria-hidden className="blob bottom-12 left-1/3 h-52 w-52 animate-float bg-mint-soft [animation-delay:3.5s]" />
-
-      <div className="relative z-10 flex flex-col items-center gap-3 text-center">
-        <span className="grid h-20 w-20 place-items-center rounded-blob border-2 border-white bg-white text-5xl shadow-clay" aria-hidden>
-          <span className="animate-bounce-soft">☀️</span>
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-10 px-6 py-12">
+      <div className="flex max-w-md flex-col items-center text-center">
+        <span
+          className="grid h-16 w-16 place-items-center rounded-full border border-border bg-card text-primary shadow-paper"
+          aria-hidden
+        >
+          <Sun className="h-8 w-8" strokeWidth={1.5} />
         </span>
-        <h1 className="mt-1 font-display text-4xl font-bold text-coral">Summer Quest NYC</h1>
-        <p className="max-w-xs text-balance font-medium text-foreground/75">
-          One real NYC thing to do every day. Spin it, go do it, share the proof.
+        <p className="eyebrow mt-5 text-muted-foreground">New York City · Summer Edition</p>
+        <h1 className="mt-2 font-display text-[2.75rem] font-semibold leading-[1.02] tracking-tight">
+          Summer Quest <span className="italic text-primary">NYC</span>
+        </h1>
+        <p className="mt-3 max-w-sm text-balance text-muted-foreground">
+          One real New York thing to do every day. Spin it, go do it, share the proof.
         </p>
       </div>
 
-      <div className="relative z-10 w-full max-w-xs">
+      <div className="w-full max-w-xs">
         <LoginButton />
-        <p className="mt-4 text-center text-xs font-medium text-foreground/55">
+        <p className="mt-4 text-center text-xs text-muted-foreground">
           Photos you mark public appear in a public feed.
         </p>
       </div>

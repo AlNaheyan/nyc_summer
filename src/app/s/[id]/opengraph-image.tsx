@@ -21,10 +21,10 @@ export default async function Image({ params }: { params: { id: string } }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(135deg,#FFE08A,#FF5E5B)",
+            background: "linear-gradient(135deg,#E8C77A,#C2562E)",
             fontSize: 72,
             fontWeight: 800,
-            color: "#fff",
+            color: "#FBF6EC",
           }}
         >
           Summer Quest NYC
@@ -36,7 +36,7 @@ export default async function Image({ params }: { params: { id: string } }) {
 
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", background: "#fff8ef" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", background: "#F5EEE1" }}>
         {/* Photo */}
         <div style={{ display: "flex", width: 600, height: "100%" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -50,21 +50,31 @@ export default async function Image({ params }: { params: { id: string } }) {
             justifyContent: "space-between",
             padding: 56,
             width: 600,
-            background: "linear-gradient(160deg,#FFE08A 0%,#FF8C8A 100%)",
+            background: "#FBF6EC",
+            borderLeft: "2px solid #E2D6BE",
           }}
         >
-          <div style={{ display: "flex", fontSize: 30, fontWeight: 700, color: "#7a2018" }}>
-            ☀ Summer Quest NYC
+          <div
+            style={{
+              display: "flex",
+              fontSize: 26,
+              fontWeight: 700,
+              letterSpacing: 4,
+              textTransform: "uppercase",
+              color: "#C2562E",
+            }}
+          >
+            Summer Quest NYC
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ fontSize: 60, fontWeight: 800, color: "#2a1a12", lineHeight: 1.05 }}>
+            <div style={{ fontSize: 62, fontWeight: 800, color: "#26201A", lineHeight: 1.04 }}>
               {post.questTitle}
             </div>
-            <div style={{ fontSize: 34, color: "#5a3a2a" }}>
+            <div style={{ fontSize: 34, color: "#6F6354" }}>
               {post.authorName} did it{post.locationName ? ` at ${post.locationName}` : ""}.
             </div>
           </div>
-          <div style={{ display: "flex", fontSize: 28, fontWeight: 600, color: "#7a2018" }}>
+          <div style={{ display: "flex", fontSize: 28, fontWeight: 600, color: "#3E7E78" }}>
             Spin yours → summerquest.nyc
           </div>
         </div>
