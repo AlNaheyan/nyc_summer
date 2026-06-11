@@ -22,6 +22,14 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  /* Hide the scrollbar on horizontal card carousels (still scrollable). */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
   /* Floating decorative blob used as ambient page candy. */
   .blob {
     position: fixed;

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { MatchedOption } from "@/lib/matcher";
 import { staticMapUrl, googleMapsUrl } from "@/lib/maps/mapbox";
+import { cn } from "@/lib/utils";
 
 interface Props {
   options: MatchedOption[];
@@ -10,50 +11,27 @@ interface Props {
   disabled: boolean;
 }
 
-const CARD_W = 46; // preview card width as % of the deck container
-
 /**
- * The locations "deck": small preview cards (map header + name) fanned into an
- * arch, each pivoting from its bottom-left corner. Hovering nudges a card up;
- * clicking opens a detail modal with the full info for that spot.
+ * The locations "deck": a horizontal snap-scroll carousel of clay preview
+ * cards (map header + name). Hover nudges a card up; tapping opens a detail
+ * modal with the full info for that spot.
  */
 export function LocationDeck({ options, onDid, disabled }: Props) {
-  const [hovered, setHovered] = useState<number | null>(null);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const n = options.length;
-
-  const span = 100 - CARD_W; // horizontal room for the arch
-  const step = n > 1 ? span / (n - 1) : 0;
-  const angle = n <= 2 ? 7 : 9; // degrees per card
 
   return (
     <>
       <div
-        className="relative -mt-10 mb-5 mx-auto -rotate-6 w-full max-w-md select-none"
-        style={{ height: "12.5rem" }}
-        onMouseLeave={() => setHovered(null)}
+        className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 pt-1 select-none"
+        role="list"
       >
-        {options.map((option, i) => {
-          const rot = -((n - 1) * angle) / 2 + i * angle; // arch centered on 0°
-          const lift = hovered === i ? " translateY(-8px)" : "";
-          return (
-            <PreviewCard
-              key={option.id}
-              option={option}
-              onOpen={() => {
-                setHovered(null);
-                setOpenIndex(i);
-              }}
-              onHover={() => setHovered(i)}
-              style={{
-                left: `${i * step}%`,
-                transform: `rotate(${rot}deg)${lift}`,
-                transformOrigin: "bottom left",
-                zIndex: hovered === i ? 60 : 10 + i,
-              }}
-            />
-          );
-        })}
+        {options.map((option, i) => (
+          <PreviewCard
+            key={option.id}
+            option={option}
+            onOpen={() => setOpenIndex(i)}
+          />
+        ))}
       </div>
 
       {openIndex != null && options[openIndex] && (
@@ -72,46 +50,45 @@ export function LocationDeck({ options, onDid, disabled }: Props) {
   );
 }
 
-/** Small card in the arch: map header + name. Opens the modal on click. */
+/** Clay card in the carousel: map header + name. Opens the modal on click. */
 function PreviewCard({
   option,
   onOpen,
-  onHover,
-  style,
 }: {
   option: MatchedOption;
   onOpen: () => void;
-  onHover: () => void;
-  style: React.CSSProperties;
 }) {
   const mapUrl =
     option.lat != null && option.lng != null
-      ? staticMapUrl({ lat: option.lat, lng: option.lng, width: 360, height: 180 })
+      ? staticMapUrl({ lat: option.lat, lng: option.lng, width: 360, height: 200 })
       : null;
   const distance = option.distanceKm != null ? `${option.distanceKm.toFixed(1)} km` : null;
 
   return (
     <button
       type="button"
+      role="listitem"
       onClick={onOpen}
-      onMouseEnter={onHover}
-      onFocus={onHover}
-      style={style}
       aria-label={`Open ${option.title}`}
-      className="absolute bottom-0 block w-[46%] overflow-hidden rounded-card border-2 border-white bg-white text-left shadow-clay transition-transform duration-200 ease-out will-change-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-coral"
+      className={cn(
+        "group block w-44 shrink-0 snap-start overflow-hidden rounded-card border-2 border-white bg-white text-left shadow-clay",
+        "transition-transform duration-200 ease-out will-change-transform",
+        "hover:-translate-y-1.5 focus-visible:-translate-y-1.5 active:scale-[0.97]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-coral",
+      )}
     >
-      <div className="relative h-20 bg-gradient-to-br from-sky-soft via-sky/40 to-sun-soft">
+      <div className="relative h-24 bg-gradient-to-br from-sky-soft via-sky/40 to-sun-soft">
         {mapUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={mapUrl}
             alt=""
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
             loading="lazy"
             draggable={false}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-2xl" aria-hidden>
+          <div className="flex h-full w-full items-center justify-center text-3xl" aria-hidden>
             📍
           </div>
         )}
@@ -121,9 +98,9 @@ function PreviewCard({
           </span>
         )}
       </div>
-      <div className="px-2.5 py-2">
-        <h3 className="truncate text-[13px] font-bold leading-tight">{option.title}</h3>
-        <p className="truncate text-[11px] text-foreground/55">
+      <div className="px-3 py-2.5">
+        <h3 className="truncate text-sm font-bold leading-tight">{option.title}</h3>
+        <p className="mt-0.5 truncate text-[11px] font-medium text-foreground/55">
           {option.location_name ?? option.borough ?? "NYC"}
         </p>
       </div>
