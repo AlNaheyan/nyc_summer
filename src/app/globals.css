@@ -3,18 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --background: #fff8ef; /* warm off-white */
-  --foreground: #2a1a12;
+  --background: #fff6ea; /* warm cream */
+  --foreground: #3a2418; /* warm espresso */
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  /* Soft sunlit wash so the whole app feels warm and playful. */
+  background-image:
+    radial-gradient(60rem 60rem at 110% -10%, rgba(255, 182, 39, 0.22), transparent 60%),
+    radial-gradient(48rem 48rem at -10% 0%, rgba(255, 140, 138, 0.20), transparent 55%),
+    radial-gradient(52rem 52rem at 50% 120%, rgba(127, 212, 245, 0.20), transparent 60%);
+  background-attachment: fixed;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  /* Floating decorative blob used as ambient page candy. */
+  .blob {
+    position: fixed;
+    border-radius: 9999px;
+    filter: blur(6px);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
   }
 }
 
@@ -26,5 +41,8 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  .blob {
+    animation: none !important;
   }
 }

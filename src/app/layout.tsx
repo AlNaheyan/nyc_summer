@@ -1,19 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { Fredoka, Nunito } from "next/font/google";
 import "./globals.css";
 
-// Phase 0 uses the bundled Geist faces mapped to display/body roles.
-// TECH_SPEC §9 calls for a distinct display font for quest titles — swap in
-// Phase 3 polish without touching consumers (they read the CSS variables).
-const display = localFont({
-  src: "./fonts/GeistVF.woff",
+// Playful summer identity (TECH_SPEC §9): Fredoka is a chunky, rounded display
+// face for quest titles and headings; Nunito is its friendly, soft-cornered
+// body companion. Consumers read the CSS variables, never the imports.
+const display = Fredoka({
+  subsets: ["latin"],
   variable: "--font-display",
-  weight: "100 900",
+  weight: ["500", "600", "700"],
+  display: "swap",
 });
-const body = localFont({
-  src: "./fonts/GeistVF.woff",
+const body = Nunito({
+  subsets: ["latin"],
   variable: "--font-body",
-  weight: "100 900",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
