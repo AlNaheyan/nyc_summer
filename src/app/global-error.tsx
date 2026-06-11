@@ -28,21 +28,40 @@ export default function GlobalError({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "1.5rem",
+          gap: "1.25rem",
           padding: "1.5rem",
           textAlign: "center",
-          background: "linear-gradient(to bottom, #FFE08A, #FFF7E8, #7FD4F5)",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-          color: "#2A1A12",
+          background: "#F5EEE1",
+          fontFamily: "Georgia, 'Times New Roman', serif",
+          color: "#26201A",
         }}
       >
-        <div style={{ fontSize: "4rem", lineHeight: 1 }} aria-hidden>
-          🌩️
+        <div
+          aria-hidden
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "4rem",
+            height: "4rem",
+            borderRadius: "9999px",
+            border: "1px solid #E2D6BE",
+            background: "#FBF6EC",
+            color: "#C2562E",
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 16a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A4.5 4.5 0 0 1 17 16" />
+            <path d="m13 12-3 5h4l-3 5" />
+          </svg>
         </div>
-        <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700, color: "#FF5E5B" }}>
+        <p style={{ margin: 0, fontSize: "0.6875rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600, color: "#6F6354", fontFamily: "system-ui, sans-serif" }}>
           Something broke
+        </p>
+        <h1 style={{ margin: 0, fontSize: "2.25rem", fontWeight: 600, letterSpacing: "-0.012em" }}>
+          A summer storm
         </h1>
-        <p style={{ margin: 0, maxWidth: "20rem", fontWeight: 500, opacity: 0.75 }}>
+        <p style={{ margin: 0, maxWidth: "20rem", color: "#6F6354", fontFamily: "system-ui, sans-serif" }}>
           The app hit an unexpected error. Reloading usually clears it up.
         </p>
         <button
@@ -50,13 +69,13 @@ export default function GlobalError({
           style={{
             border: "none",
             cursor: "pointer",
-            borderRadius: "2.5rem",
-            background: "#FF5E5B",
-            color: "#fff",
+            borderRadius: "9999px",
+            background: "#C2562E",
+            color: "#FBF6EC",
             padding: "0.75rem 2rem",
-            fontSize: "1.125rem",
+            fontSize: "1rem",
             fontWeight: 600,
-            boxShadow: "0 5px 0 0 #D6443F",
+            fontFamily: "system-ui, sans-serif",
           }}
         >
           Try again
