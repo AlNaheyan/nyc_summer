@@ -36,17 +36,22 @@ export function HomeShell({ profile, earnedBadges, journal, spin }: Props) {
   const col3Vis = (tab === "spin" || tab === "journal" ? "block" : "hidden") + " lg:block";
 
   return (
-    <div className="min-h-dvh bg-background pb-20 lg:pb-0">
-      <div className="mx-auto grid max-w-6xl lg:grid-cols-[clamp(220px,22vw,280px)_minmax(0,1fr)_clamp(300px,28vw,360px)] lg:gap-5 lg:px-4 lg:py-6">
+    <div className="relative min-h-dvh overflow-x-clip bg-background pb-24 lg:pb-0">
+      {/* Ambient floating candy blobs (decorative, reduced-motion safe). */}
+      <div aria-hidden className="blob left-[-4rem] top-24 h-56 w-56 animate-float bg-sun-soft" />
+      <div aria-hidden className="blob right-[-5rem] top-1/3 h-72 w-72 animate-float bg-coral-soft [animation-delay:1.5s]" />
+      <div aria-hidden className="blob bottom-10 left-1/4 h-64 w-64 animate-float bg-sky-soft [animation-delay:3s]" />
+
+      <div className="relative z-10 mx-auto grid max-w-6xl lg:grid-cols-[clamp(220px,22vw,280px)_minmax(0,1fr)_clamp(300px,28vw,360px)] lg:gap-5 lg:px-4 lg:py-6">
         {/* Left — profile */}
         <aside className={`${vis("profile")} lg:sticky lg:top-6 lg:self-start`}>
-          <div className="lg:overflow-hidden lg:rounded-card lg:bg-white/40 lg:shadow-card">
+          <div className="lg:overflow-hidden lg:rounded-card lg:border-2 lg:border-white lg:bg-white/70 lg:shadow-clay lg:backdrop-blur-sm">
             <ProfileSidebar profile={profile} earnedBadges={earnedBadges} />
           </div>
         </aside>
 
         {/* Center — feed */}
-        <main className={`${vis("feed")} border-foreground/10 lg:rounded-card lg:border-x lg:bg-white/30`}>
+        <main className={`${vis("feed")} lg:overflow-hidden lg:rounded-card lg:border-2 lg:border-white lg:bg-white/55 lg:shadow-clay lg:backdrop-blur-sm`}>
           <FeedView />
         </main>
 
@@ -55,20 +60,20 @@ export function HomeShell({ profile, earnedBadges, journal, spin }: Props) {
           className={`${col3Vis} lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:self-start lg:overflow-y-auto`}
         >
           <div className={vis("spin")}>
-            <div className="lg:overflow-hidden lg:rounded-card lg:bg-white/40 lg:shadow-card">
+            <div className="lg:overflow-hidden lg:rounded-card lg:border-2 lg:border-white lg:bg-white/70 lg:shadow-clay lg:backdrop-blur-sm">
               <SpinView {...spin} />
             </div>
           </div>
           <div className={`${(tab === "journal" ? "block" : "hidden") + " lg:block"} lg:mt-5`}>
-            <div className="lg:overflow-hidden lg:rounded-card lg:bg-white/40 lg:shadow-card">
+            <div className="lg:overflow-hidden lg:rounded-card lg:border-2 lg:border-white lg:bg-white/70 lg:shadow-clay lg:backdrop-blur-sm">
               <JournalList entries={journal} />
             </div>
           </div>
         </aside>
       </div>
 
-      {/* Mobile section nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-foreground/10 bg-white/90 backdrop-blur lg:hidden">
+      {/* Mobile section nav — chunky bouncing pills */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-white bg-white/85 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
         <ul className="mx-auto flex max-w-md items-stretch justify-around">
           {TABS.map((t) => {
             const active = tab === t.id;
@@ -77,11 +82,20 @@ export function HomeShell({ profile, earnedBadges, journal, spin }: Props) {
                 <button
                   onClick={() => setTab(t.id)}
                   aria-current={active ? "page" : undefined}
-                  className={`flex w-full flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition ${
-                    active ? "text-coral" : "text-foreground/50"
+                  className={`group flex w-full flex-col items-center gap-1 py-2.5 text-[11px] font-extrabold transition-colors ${
+                    active ? "text-coral" : "text-foreground/45"
                   }`}
                 >
-                  <span className="text-xl" aria-hidden>{t.icon}</span>
+                  <span
+                    aria-hidden
+                    className={`grid h-10 w-10 place-items-center rounded-2xl text-xl transition-transform duration-200 ${
+                      active
+                        ? "scale-100 bg-coral/15 shadow-clay"
+                        : "scale-90 group-active:scale-95"
+                    }`}
+                  >
+                    {t.icon}
+                  </span>
                   {t.label}
                 </button>
               </li>
