@@ -7,8 +7,9 @@ import { getFeedPage } from "@/lib/feed/reads";
 // Public read (TECH_SPEC §8). Auth is optional — only used to mark the viewer's
 // own reactions.
 export async function GET(request: NextRequest) {
-  // Only unauthenticated endpoint — cap by IP to deter scraping.
-  const rl = await rateLimit("feed", clientIp(request));
+  // Only unauthenticated endpoint — cap by IP to deter scraping. `request.ip`
+  // is the platform-trusted client IP (Vercel); fall back to headers in dev.
+  const rl = await rateLimit("feed", request.ip ?? clientIp(request));
   if (!rl.ok) return rateLimitResponse(rl);
 
   const cursor = new URL(request.url).searchParams.get("cursor");
