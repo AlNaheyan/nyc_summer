@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { getProfile } from "@/lib/profiles/service";
 import { getActiveOrNextQuest } from "@/lib/quests/daily";
 import { seasonEnded } from "@/lib/season";
@@ -10,6 +11,9 @@ export async function POST() {
 
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  const rl = await rateLimit("spin", user.id);
+  if (!rl.ok) return rateLimitResponse(rl);
 
   const supabase = createClient();
   const profile = await getProfile(supabase, user.id);

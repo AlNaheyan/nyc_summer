@@ -116,6 +116,7 @@ export type RerollResult =
  */
 export async function rerollActiveQuest(
   client: SupabaseClient,
+  admin: SupabaseClient,
   userId: string,
   isAdult: boolean,
   currentPoints: number,
@@ -128,14 +129,23 @@ export async function rerollActiveQuest(
   if (!active) return { ok: false, error: "no_active_quest" };
 
   const free = isFreeReroll(rows);
-  if (!free && currentPoints < POINTS.rerollCost) {
-    return { ok: false, error: "insufficient_points" };
+
+  // Charge first, atomically. `spend_points` deducts only if the balance can
+  // cover it, so concurrent rerolls can't double-spend. The DB — not the
+  // client-readable `currentPoints` — is the authority on the balance.
+  let pointsRemaining = currentPoints;
+  if (!free) {
+    const { data: newBalance, error: spendErr } = await admin.rpc("spend_points", {
+      p_user: userId,
+      p_amount: POINTS.rerollCost,
+    });
+    if (spendErr) throw spendErr;
+    if (newBalance == null) return { ok: false, error: "insufficient_points" };
+    pointsRemaining = newBalance as number;
   }
 
   const picked = spinQuest(isAdult);
   if (!picked) throw new Error("No eligible quest templates");
-
-  const pointsRemaining = free ? currentPoints : currentPoints - POINTS.rerollCost;
 
   const { data, error } = await client
     .from("daily_quests")
@@ -144,14 +154,6 @@ export async function rerollActiveQuest(
     .select("*")
     .single();
   if (error) throw error;
-
-  if (!free) {
-    const { error: pErr } = await client
-      .from("profiles")
-      .update({ points: pointsRemaining })
-      .eq("id", userId);
-    if (pErr) throw pErr;
-  }
 
   // Recompute state with the updated active row.
   const updatedRows = rows.map((r) => (r.id === active.id ? (data as DailyQuest) : r));

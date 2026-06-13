@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { getProfile } from "@/lib/profiles/service";
 import { rerollActiveQuest } from "@/lib/quests/daily";
 import { seasonEnded } from "@/lib/season";
@@ -11,11 +12,15 @@ export async function POST() {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
+  const rl = await rateLimit("spin", user.id);
+  if (!rl.ok) return rateLimitResponse(rl);
+
   const supabase = createClient();
+  const admin = createAdminClient();
   const profile = await getProfile(supabase, user.id);
   if (!profile) return NextResponse.json({ error: "no_profile" }, { status: 403 });
 
-  const result = await rerollActiveQuest(supabase, user.id, profile.is_adult, profile.points);
+  const result = await rerollActiveQuest(supabase, admin, user.id, profile.is_adult, profile.points);
 
   if (!result.ok) {
     const status = result.error === "insufficient_points" ? 402 : 409;

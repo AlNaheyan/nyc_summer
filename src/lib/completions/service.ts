@@ -5,6 +5,8 @@ import { applyCompletion } from "@/lib/gamification/streak";
 import { computePoints } from "@/lib/gamification/points";
 import { evaluateBadges, type UserStats } from "@/lib/gamification/evaluate-badges";
 import { MAX_QUESTS_PER_DAY } from "@/lib/quests/day-rules";
+import { getTemplate } from "@/lib/quests/templates";
+import { isAvailable } from "@/lib/matcher";
 
 export interface RecordCompletionInput {
   userId: string;
@@ -82,6 +84,30 @@ export async function recordCompletion(
     .maybeSingle();
   if (dErr) throw dErr;
   if (!daily) throw new Error("no_active_quest");
+
+  // Integrity: a submitted activity must actually be eligible for the active
+  // quest (tag overlap with the template + still available), matching what the
+  // options matcher would have offered. Stops attaching arbitrary activities to
+  // a completion to game tag/borough badge stats.
+  if (input.activityId != null) {
+    const template = getTemplate(daily.quest_template_id);
+    const { data: act } = await admin
+      .from("activities")
+      .select("tags, start_date, end_date")
+      .eq("id", input.activityId)
+      .maybeSingle();
+    const overlaps =
+      act != null &&
+      template != null &&
+      (act.tags as string[]).some((t) => (template.match_tags as string[]).includes(t));
+    const available =
+      act != null &&
+      isAvailable(
+        { start_date: act.start_date, end_date: act.end_date } as never,
+        today,
+      );
+    if (!overlaps || !available) throw new Error("invalid_activity");
+  }
 
   const { data: profileRow, error: pErr } = await admin
     .from("profiles")

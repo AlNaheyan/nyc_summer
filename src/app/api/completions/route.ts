@@ -101,6 +101,9 @@ export async function POST(request: NextRequest) {
     if (err instanceof Error && err.message === "no_active_quest") {
       return NextResponse.json({ error: "no_active_quest" }, { status: 409 });
     }
+    if (err instanceof Error && err.message === "invalid_activity") {
+      return NextResponse.json({ error: "invalid_activity" }, { status: 400 });
+    }
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
