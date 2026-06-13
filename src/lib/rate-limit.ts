@@ -13,16 +13,20 @@ import { createAdminClient } from "@/lib/supabase/server";
  *   - Fixed window, incremented atomically server-side to avoid races.
  */
 
-type LimiterName = "completions" | "feed" | "options";
+type LimiterName = "completions" | "feed" | "options" | "spin" | "report";
 
 // Generous enough for real use, tight enough to stop a script loop.
 //   completions — expensive (upload + paid moderation API); also daily-capped.
 //   feed        — public, unauthenticated; keyed by IP, allows normal scroll.
 //   options     — heaviest DB read; keyed by user.
+//   spin        — quest spin/reroll; reroll spends points, so cap the loop.
+//   report      — abuse surface (auto-hide griefing); keep tight, keyed by user.
 const CONFIG: Record<LimiterName, { limit: number; windowSeconds: number }> = {
   completions: { limit: 10, windowSeconds: 60 },
   feed: { limit: 60, windowSeconds: 60 },
   options: { limit: 30, windowSeconds: 60 },
+  spin: { limit: 30, windowSeconds: 60 },
+  report: { limit: 10, windowSeconds: 60 },
 };
 
 export interface RateLimitResult {
@@ -68,8 +72,19 @@ export async function rateLimit(name: LimiterName, key: string): Promise<RateLim
   }
 }
 
-/** First hop of X-Forwarded-For (the real client on Vercel), or a fallback. */
+/**
+ * Best-effort client IP for rate-limit keying. Prefers the platform-set,
+ * non-spoofable headers: on Vercel `x-real-ip` (and `x-vercel-forwarded-for`)
+ * are set by the edge and override any client-supplied value, so a caller
+ * can't rotate them to evade the limit. The leftmost `x-forwarded-for` hop is
+ * a last-resort fallback for non-Vercel/local dev only — never trust it as the
+ * sole source in production. Routes on NextRequest should prefer `request.ip`.
+ */
 export function clientIp(request: Request): string {
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  const vercel = request.headers.get("x-vercel-forwarded-for");
+  if (vercel) return vercel.split(",")[0]?.trim() || "anonymous";
   const xff = request.headers.get("x-forwarded-for");
   return xff?.split(",")[0]?.trim() || "anonymous";
 }
